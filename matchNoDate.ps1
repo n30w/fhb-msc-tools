@@ -1,4 +1,4 @@
-﻿function Is-Match($directory) {
+function Is-Match($directory) {
     $match = $directory -match '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].\w*'
     return $match
 }
@@ -21,11 +21,11 @@ function Get-Match($directory) {
     
 }
 
-$root = "C:\Users\ralabastro\Desktop\01-MERCHANTS"
+$user = $env:UserName
+$root = "C:\Users\$user\Desktop\01-MERCHANTS"
 
-Start-Transcript -Path "C:\Users\ralabastro\Desktop\log.txt"
+Start-Transcript -Path "C:\Users\$user\Desktop\log.txt"
 foreach ($dir in $root) {
     Get-Match "$dir"
 }
 Stop-Transcript
-
