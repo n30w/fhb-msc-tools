@@ -6,4 +6,3 @@ if (!(Test-Path I:)) {
 } else {
     Write-Host "I:\ is already mounted"
 }
-
