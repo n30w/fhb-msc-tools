@@ -156,6 +156,7 @@ PIN PAD: [Qty]
 TERMINAL FEATURES: [IP or Dial Up (cannot be both)]
 PAYMENT SELECTION: [all up front/installment: 3/130, 6/65, 12/32.50]
 ENTITLEMENTS: [MC/VISA/DISC/AMEX/PIN DEBIT/EBT/Other]
+TIP: [yes/no]
 EMAIL: [required!]
 ACCOUNT UPDATES: [new address, contact, phone, etc]
 SHIPPING ADDRESS:

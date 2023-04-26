@@ -9,7 +9,7 @@ function Get-Match($directory) {
     $hasAnySubDir = (Get-ChildItem -Force -Directory "$directory").Count -gt 0
     
     if ($hasAnySubDir) {
-            foreach ($dir in $subDir) {
+        foreach ($dir in $subDir) {
             $matched = Is-Match $dir
             if(!($matched)) { # Checks if something is a sub-folder
                 Get-Match($directory + "\" + $dir)                               
