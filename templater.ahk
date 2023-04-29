@@ -15,6 +15,31 @@ CopyInfo(a)
 	return b
 }
 
+focusExcelDB()
+{
+	if WinExist("WPMID_FDMID_CASEID - Excel")
+	{
+		WinActivate
+		Sleep 1000
+	}
+}
+
+getFDMID(wpmid)
+{
+	; Ctrl+Shift+H opens the custom Macro I have for the excel sheet which retrieves the FDMID from a table
+	Sleep 200
+	Send "^+h"
+	Sleep 200
+	A_Clipboard := wpmid
+	Sleep 200
+	Send "^v"
+	Sleep 200
+	Send "{Enter}"
+	Sleep 800
+	fdmid := A_Clipboard
+	A_Clipboard := ""
+	return fdmid
+}
 
 OpenNotepad()
 {
@@ -53,6 +78,15 @@ F9::
 { ; V1toV2: Added bracket
 	CoordMode "Mouse", "Window"
 	ClipSaved := A_Clipboard
+	
+	; Open Excel DB if it isn't already open
+	if not WinExist("WPMID_FDMID_CASEID - Excel")
+	{
+		Run("WPMID_FDMID_CASEID.xlsm", , )
+	}
+	
+	Sleep 1000
+	
 	if WinExist("CAPS")
 	{
 		WinActivate
@@ -82,7 +116,7 @@ F9::
 	PRIOR NOTES: none
 
 	DBA NAME: {1}
-	FDMS MID: 
+	FDMS MID: {3}
 	WP MID: {2}
 	TERMINAL ORDER/QTY: [FD150] [Qty]
 	PIN PAD: [Qty]
@@ -106,8 +140,12 @@ F9::
 	
 	entries := CopyInfo(coords)
 	
+	; Get FDMID, which is not on CAPS
+	focusExcelDB()
+	entries.Push(Substr(getFDMID(entries[2]),1,-2)) ; Remove `r`n from Excel copy
+	
 	;MsgBox "a"
-	formatted := Format(templateText, entries[1], entries[2])
+	formatted := Format(templateText, entries[1], entries[2], ( entries[3] = "" ? "no FDMID found" : entries[3]))
 	
 	; Address info
 	coords := [
@@ -117,6 +155,9 @@ F9::
 		{x: 332, y: 250},
 		{x: 350, y: 280}
 	]
+	
+	WinActivate("CAPS")
+	Sleep 500
 	
 	address := CopyInfo(coords)
 	
@@ -135,6 +176,8 @@ F9::
 	`t{5}
 	)"), address*)
 
+	
+
 	if WinExist("ahk_exe notepad++.exe")
 	{
 		WinActivate()
@@ -144,6 +187,8 @@ F9::
 		OpenNotepad()
 		Sleep(500)
 	}
+	
+	
 
 	A_Clipboard := formatted
 
@@ -155,6 +200,7 @@ F9::
 	Click 80, 824, "Right"
 	Sleep 100
 	Click 140, 740
+	A_Clipboard := ""
 
 } ; V1toV2: Added Bracket before hotkey or Hotstring
 
