@@ -1,51 +1,41 @@
-NavigateCaps()
+OpenCAPS() 
 {
-	Sleep 1500
-	Click 274, 42
-	Sleep 300
-	Click 274 105
-	Sleep 300
-	Click 30, 66
+	Run "CAPS.appref-ms" ; runs a shortcut to CAPS
+	CoordMode "Mouse", "Window"
+	Sleep 5000
+	Click 280, 40
+	Sleep 600
+	Click 280, 105
+	Sleep 500
+	Click 60, 315
 }
 
-SendClipboard(c)
+SearchCAPS(v)
 {
-	; Sleep 200
-	Send c
+	CoordMode "Mouse", "Window"
+	if WinExist("CAPS")
+	{
+		WinActivate
+	}
+	else
+	{
+		if MsgBox("CAPS not running. Would you like to activate it?",, "YesNo") = "No"
+			return
+		else
+			OpenCAPS()
+	}
+	Sleep 400
+	Click 30, 66
+	Sleep 300
+	Send v
 	Sleep 400
 	Send "{Enter}"
 	Sleep 1000
 }
 
-OpenCaps() 
-{
-	Run("`"C:\Users\ralabastro\AppData\Local\Apps\2.0\DJVY1VY9.CG0\M17B2GO8.4ME\caps..tion_57d36b76fd0aefc8_0004.0006_4976a6dff7a6e371\CAPS.exe`"")
-	NavigateCaps()
-	return
-}
+; Opens CAPS when the script is run
+OpenCAPS()
 
-F8:: OpenCaps()
+F8:: SearchCAPS(A_Clipboard)
 
-^F8::
-{
-	CoordMode "Mouse", "Window"
-	ClipSaved := A_Clipboard
-	if WinExist("CAPS")
-	{
-		WinActivate
-		Click 30, 66
-		Sleep 500
-	}
-	else
-	{
-		OpenCaps()
-	}
-	
-	Sleep 300
-	SendClipboard(ClipSaved)
-	;Sleep 1000
-	;Click 55, 316
-}
-
-
-^!x::ExitApp
+^!x:: ExitApp
