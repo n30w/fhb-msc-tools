@@ -41,10 +41,10 @@ F8:: OpenCaps()
 		OpenCaps()
 	}
 	
-	Sleep 500
+	Sleep 300
 	SendClipboard(ClipSaved)
-	Sleep 1000
-	Click 55, 316
+	;Sleep 1000
+	;Click 55, 316
 }
 
 
