@@ -1,5 +1,5 @@
 Attribute VB_Name = "Lookup"
-Sub LookupValue()
+Sub LookupFDMID()
 Attribute LookupValue.VB_ProcData.VB_Invoke_Func = "H\n14"
     Dim searchValue As String
     Dim resultValue As Variant
@@ -17,19 +17,7 @@ Attribute LookupValue.VB_ProcData.VB_Invoke_Func = "H\n14"
     End If
 End Sub
 
-Function Clipboard$(Optional s$)
-    Dim v: v = s  'Cast to variant for 64-bit VBA support
-    With CreateObject("htmlfile")
-    With .parentWindow.clipboardData
-        Select Case True
-            Case Len(s): .setData "text", v
-            Case Else:   Clipboard = .GetData("text")
-        End Select
-    End With
-    End With
-End Function
-
-Sub LookupCase()
+Sub LookupConversionCase()
 Attribute LookupCase.VB_ProcData.VB_Invoke_Func = "L\n14"
     Dim searchValue As String
     Dim resultValue As Variant
@@ -65,3 +53,14 @@ Attribute LookupAccount.VB_ProcData.VB_Invoke_Func = "K\n14"
     End If
 End Sub
 
+Function Clipboard$(Optional s$)
+    Dim v: v = s  'Cast to variant for 64-bit VBA support
+    With CreateObject("htmlfile")
+    With .parentWindow.clipboardData
+        Select Case True
+            Case Len(s): .setData "text", v
+            Case Else:   Clipboard = .GetData("text")
+        End Select
+    End With
+    End With
+End Function
