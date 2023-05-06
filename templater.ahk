@@ -1,30 +1,4 @@
-﻿; Given an array of coordinates, copys and appends the data it finds.
-CopyInfo(a) 
-{
-	b := Array()
-	A_Clipboard := ""
-	for p in a 
-	{
-		Click p.x, p.y
-		Send "^c"
-		Sleep 100
-		b.Push A_Clipboard
-		A_Clipboard := ""
-	}
-	
-	return b
-}
-
-focusExcelDB()
-{
-	if WinExist("WPMID_FDMID_CASEID - Excel")
-	{
-		WinActivate
-		Sleep 1000
-	}
-}
-
-getFDMID(wpmid)
+﻿getFDMID(wpmid)
 {
 	; Ctrl+Shift+H opens the custom Macro I have for the excel sheet which retrieves the FDMID from a table
 	Sleep 200
@@ -41,13 +15,6 @@ getFDMID(wpmid)
 	return fdmid
 }
 
-OpenNotepad()
-{
-	Run("`"C:\Users\ralabastro\Desktop\npp.8.5.2.portable\notepad++.exe`"")
-	Sleep 200 
-	return
-}
-
 NavigateCaps()
 {
 	Sleep 1500
@@ -60,22 +27,14 @@ NavigateCaps()
 
 SendClipboard(c)
 {
-	; Sleep 200
 	Send c
 	Sleep 400
 	Send "{Enter}"
 	Sleep 1000
 }
 
-OpenCaps() 
-{
-	Run("`"C:\Users\ralabastro\AppData\Local\Apps\2.0\DJVY1VY9.CG0\M17B2GO8.4ME\caps..tion_57d36b76fd0aefc8_0004.0006_4976a6dff7a6e371\CAPS.exe`"")
-	NavigateCaps()
-	return
-}
-
 F9::
-{ ; V1toV2: Added bracket
+{
 	CoordMode "Mouse", "Window"
 	ClipSaved := A_Clipboard
 	
@@ -202,6 +161,4 @@ F9::
 	Click 140, 740
 	A_Clipboard := ""
 
-} ; V1toV2: Added Bracket before hotkey or Hotstring
-
-^!x::ExitApp()
+}

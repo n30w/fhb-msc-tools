@@ -1,0 +1,1 @@
+Powershell.exe -File C:\Users\ralabastro\Desktop\scripts\ps\openShared.ps1
