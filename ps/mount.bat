@@ -1,1 +1,1 @@
-Powershell.exe -File C:\Users\ralabastro\Desktop\scripts\ps\openShared.ps1
+Powershell.exe -File C:\Users\ralabastro\Desktop\fhb-scripts\ps\openShared.ps1
