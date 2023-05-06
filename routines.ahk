@@ -15,7 +15,6 @@ class Routines
 		mid := DataHandler.SanitizeID(mid)
 		win.FocusWindow(caps)
 		caps.clickBinocularAndSearch(mid)
-		DataHandler.Free(mid)
 		Sleep 200
 		return this
 	}

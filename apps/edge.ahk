@@ -8,5 +8,4 @@ class MSEdge extends Application
 		Send "^l"
 		Sleep 50
 	}
-	
 }
