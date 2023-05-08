@@ -54,7 +54,7 @@ class DataHandler
 	static ClearDataStore() => DataHandler.DataStore.Clear()
 	
 	; gets rid of `r`n if we were copying from Excel
-	static SanitizeID(v) => (StrLen(v) > 13 ? SubStr(v, 1, -2) : v)
+	static Sanitize(v) => RegExReplace(v, "`r`n$", "")
 	
 	; frees the memory for parameter vars
 	static Free(vars*)
@@ -74,7 +74,6 @@ class DataHandler
 		for f in fields
 		{
 			f.val := this.cb.ClickAndCopy(f.X, f.Y)
-			Sleep 200
 		}
 	}
 }
@@ -109,9 +108,9 @@ class Clippy
 	
 	Copy()
 	{
-		Sleep 100
+		Sleep 50
 		Send "^c"
-		Sleep 100
+		Sleep 50
 		this.Board := A_Clipboard
 		this.emptyA_Clipboard()
 		return this
@@ -129,7 +128,7 @@ class Clippy
 	ClickAndCopy(x, y)
 	{
 		Click(x, y)
-		Sleep 200
+		Sleep 100
 		this.Copy()
 		return this.Board
 	}

@@ -11,8 +11,3 @@ class Triggers
 		Hotkey t, r
 	}
 }
-
-
-
-
-

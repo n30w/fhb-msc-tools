@@ -10,11 +10,7 @@ Run("ps\mount.bat")
 
 CoordMode "Mouse", "Window" ; Globally set CoordMode to Mouse and Window
 
-Sleep 200
-
 DataHandler.BuildStore("resources\data.csv")
-
-Sleep 700
 
 caps := CapsDB("CAPS", "resources\CAPS.appref-ms", "CAPS")
 excel := MSExcel("ExcelDB", "resources\data.xlsm", "data - Excel")

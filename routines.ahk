@@ -20,7 +20,7 @@ class Routines
 	GetCAPSAccount(win, caps)
 	{
 		mid := this.data.cb.Update()
-		mid := DataHandler.SanitizeID(mid)
+		mid := DataHandler.Sanitize(mid)
 		win.FocusWindow(caps)
 		caps.clickBinocularAndSearch(mid)
 		Sleep 200
@@ -31,14 +31,13 @@ class Routines
 	GetSalesforceAccount(win, edge, sf)
 	{
 		mid := this.data.cb.Update()
-		mid := DataHandler.SanitizeID(mid)
+		mid := DataHandler.Sanitize(mid)
 		win.FocusWindow(edge)
 		edge.FocusURLBar()
 		this.data.cb.Board := sf.AccountURL(DataHandler.Retrieve(mid).AccountID)
 		this.data.cb.Paste()
 		Send "{Enter}"
 		this.data.cb.Clean()
-		DataHandler.Free(mid)
 		return this
 	}
 	
@@ -49,9 +48,9 @@ class Routines
 		
 		; copy stuff from CAPS
 		this.GetCAPSAccount(win, caps)
-		wp := DataHandler.SanitizeID(this.data.cb.Board)
+		wp := DataHandler.Sanitize(this.data.cb.Board)
 		
-		Sleep 1300
+		Sleep 1500
 		
 		this.data.CopyFields(
 			caps.StoreAddr1,
@@ -72,13 +71,13 @@ class Routines
 		; create shipping address, varies if StoreAddr2 has val
 		formattedTemplate .= Format( ( not (caps.StoreAddr2.val = "") ? ("
 		(
-		`t{1}
+		`n`t{1}
 		`t{2}
 		`t{3}, {4}
 		`t{5}
 		)") : "
 		(
-		`t{1}
+		`n`t{1}
 		`t{3}, {4}
 		`t{5}
 		)"), caps.StoreAddr1.val, caps.StoreAddr2.val, caps.StoreCity.val, caps.StoreState.val, caps.StoreZip.val)
@@ -94,7 +93,7 @@ class Routines
 	DataStoreQuickLook()
 	{
 		c := this.data.cb.Update()
-		r := DataHandler.Retrieve(c)
+		r := DataHandler.Retrieve(DataHandler.Sanitize(c))
 		s := ""
 		for k, v in r.OwnProps()
 		{
