@@ -8,6 +8,7 @@
 #Include "apps\excel.ahk"
 #Include "apps\notepad++.ahk"
 #Include "apps\salesforce.ahk"
+#Include "apps\obsidian.ahk"
 
 YesNoBox(t)
 {

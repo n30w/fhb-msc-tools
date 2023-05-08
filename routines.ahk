@@ -42,51 +42,78 @@ class Routines
 	}
 	
 	; gets data from CAPS and puts it into email order template
-	GenerateOrder(win, caps, npp)
+	GenerateOrder(win, caps, ob)
 	{	
-		tt := npp.templateText
+		fileExists := false
+		wp := DataHandler.Sanitize(this.data.cb.Update())
+		dba := DataHandler.Retrieve(wp).AccountName
+		path := "..\merchants\*.md"
+		fileName := ""
 		
-		; copy stuff from CAPS
-		this.GetCAPSAccount(win, caps)
-		wp := DataHandler.Sanitize(this.data.cb.Board)
-		
-		Sleep 1500
-		
-		this.data.CopyFields(
-			caps.StoreAddr1,
-			caps.StoreAddr2,
-			caps.StoreCity,
-			caps.StoreState,
-			caps.StoreZip
-		)
-		
-		; format data into a string
-		formattedTemplate := Format(
-			tt, 
-			DataHandler.Retrieve(wp).AccountName, 
-			wp,
-			DataHandler.Retrieve(wp).FDMID ;( fdmid = "" ? "no FDMID found" : fdmid )
-		)
-		
-		; create shipping address, varies if StoreAddr2 has val
-		formattedTemplate .= Format( ( not (caps.StoreAddr2.val = "") ? ("
-		(
-		`n`t{1}
-		`t{2}
-		`t{3}, {4}
-		`t{5}
-		)") : "
-		(
-		`n`t{1}
-		`t{3}, {4}
-		`t{5}
-		)"), caps.StoreAddr1.val, caps.StoreAddr2.val, caps.StoreCity.val, caps.StoreState.val, caps.StoreZip.val)
-		
-		; import that formatted data into npp
-		win.FocusWindow(npp)
-		npp.NewFile()
-		this.AttachAndPaste(formattedTemplate)
-		;npp.ChangeSyntaxLang()
+		; first check if the file even exists in merchant dir
+		Loop Files, path, "R"
+		{
+			SplitPath(A_LoopFileName, &fileName)
+			if fileName = dba . ".md"
+			{
+				fileExists := true
+				break
+			}
+		}
+			
+		if fileExists
+		{
+			win.FocusWindow(ob)
+			ob.OpenOpenMenu(dba)
+		}
+		else
+		{	
+			tt := ob.templateText
+			
+			; copy stuff from CAPS
+			A_Clipboard := wp
+			
+			this.GetCAPSAccount(win, caps)
+			wp := DataHandler.Sanitize(this.data.cb.Board)
+			
+			Sleep 1500
+			
+			this.data.CopyFields(
+				caps.StoreAddr1,
+				caps.StoreAddr2,
+				caps.StoreCity,
+				caps.StoreState,
+				caps.StoreZip
+			)
+			
+			; format data into a string
+			formattedTemplate := Format(
+				tt, 
+				dba, 
+				wp,
+				DataHandler.Retrieve(wp).FDMID ;( fdmid = "" ? "no FDMID found" : fdmid )
+			)
+			
+			; create shipping address, varies if StoreAddr2 has val
+			formattedTemplate .= Format( ( not (caps.StoreAddr2.val = "") ? ("
+			(
+			`n`t{1}
+			`t{2}
+			`t{3}, {4}
+			`t{5}
+			)") : "
+			(
+			`n`t{1}
+			`t{3}, {4}
+			`t{5}
+			)"), caps.StoreAddr1.val, caps.StoreAddr2.val, caps.StoreCity.val, caps.StoreState.val, caps.StoreZip.val)
+			
+			; import that formatted data into obsidian
+			win.FocusWindow(ob)
+			ob.OpenOpenMenu(dba)
+			
+			this.AttachAndPaste(formattedTemplate)
+		}
 		return this
 	}
 	

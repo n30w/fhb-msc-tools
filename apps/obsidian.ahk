@@ -1,13 +1,12 @@
 #Requires AutoHotkey v2.0
 
-class NotepadPP extends Application
+class ObsidianVault extends Application
 {
 	templateText := "
 	(
-	## {1}
-	IF THEY DONT WANT TO DO BUSINESS WITH US ANYMORE, RETRIEVE FAX OR EMAIL FOR CLOSE FORMS.
-
 	~
+	
+	
 	
 	DBA NAME: {1}
 	FDMS MID: {3}
@@ -23,20 +22,13 @@ class NotepadPP extends Application
 	SHIPPING ADDRESS:
 	)"
 	
-	NewFile()
+	; opens the open file menu and sends a string
+	OpenOpenMenu(s)
 	{
-		Send "^n"
-		Sleep 200
-		return this
-	}
-	
-	; sets file to Markdown syntax option
-	ChangeSyntaxLang()
-	{
+		Sleep 50
+		Send "^o"
+		Send s
 		Sleep 100
-		Click 80, 824, "Right"
-		Sleep 100
-		Click 140, 740
-		return this
+		Send "{Enter}"
 	}
 }
