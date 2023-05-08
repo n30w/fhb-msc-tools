@@ -4,9 +4,17 @@
 #Include "workflows.ahk"
 #Include "routines.ahk"
 
+; initialize any external scripts needed for startup
+
+Run("ps\mount.bat")
+
 CoordMode "Mouse", "Window" ; Globally set CoordMode to Mouse and Window
 
+Sleep 200
+
 DataHandler.BuildStore("resources\data.csv")
+
+Sleep 700
 
 caps := CapsDB("CAPS", "resources\CAPS.appref-ms", "CAPS")
 excel := MSExcel("ExcelDB", "resources\data.xlsm", "data - Excel")
@@ -25,6 +33,8 @@ F8:: routine.GetCAPSAccount(win, caps)
 
 ^+F8::  routine.GetCAPSAccount(win, caps).GetSalesforceAccount(win, edge, sf)
 
-;F9:: GenerateOrder(A_Clipboard)
+F9:: routine.GenerateOrder(win, caps, npp)
+
+F10:: routine.DataStoreQuickLook()
 
 ^!x:: Reload

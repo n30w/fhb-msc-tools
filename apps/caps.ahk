@@ -21,7 +21,7 @@ class CapsDB extends Application
 		Sleep 500
 		Click 60, 315
 	}
-
+	
 	; clicks the binoculars to search and enters a search value and clicks enter
 	clickBinocularAndSearch(mid)
 	{

@@ -3,6 +3,7 @@
 ; handles the storing and movement of data
 class DataHandler
 {
+	; map of (string : object)
 	static DataStore := Map()
 	
 	; create the store and keep it in memory
@@ -38,10 +39,10 @@ class DataHandler
 	}
 	
 	; stores a key and value into global DataStore
-	static Store(k ,v) => DataHandler.DataStore[k] := v
+	static Store(k ,v) => DataHandler.DataStore.Set(k ,v)
 	
 	; retrieves value given key from DataStore
-	static Retrieve(k) => DataHandler.DataStore.Get(k, "none")
+	static Retrieve(k) => DataHandler.DataStore.Get(k)
 	
 	; updates if k exists in DataStore
 	static Update(k, v) => (DataHandler.DataStore.Has(k) ? DataHandler.DataStore[k] := v : "")
@@ -69,6 +70,7 @@ class DataHandler
 	; given a variadic parameter of fields, go through them and set their values
 	CopyFields(fields*)
 	{
+		this.cb.Clean()
 		for f in fields
 		{
 			f.val := this.cb.ClickAndCopy(f.X, f.Y)
@@ -91,6 +93,12 @@ class Clippy
 		this.emptyA_Clipboard()
 	}
 	
+	Attach(s)
+	{
+		this.Board := s
+		this.emptyA_Clipboard()
+	}
+	
 	; updates Clippy to new Clipboard
 	Update()
 	{
@@ -101,6 +109,7 @@ class Clippy
 	
 	Copy()
 	{
+		Sleep 100
 		Send "^c"
 		Sleep 100
 		this.Board := A_Clipboard
@@ -120,6 +129,7 @@ class Clippy
 	ClickAndCopy(x, y)
 	{
 		Click(x, y)
+		Sleep 200
 		this.Copy()
 		return this.Board
 	}
@@ -136,5 +146,5 @@ class Field
 	{
 		this.X := x
 		this.Y := y
-	}	
+	}
 }

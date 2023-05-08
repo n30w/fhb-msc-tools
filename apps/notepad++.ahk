@@ -13,7 +13,7 @@ class NotepadPP extends Application
 	EMAIL: 
 	NOTES:
 	PRIOR NOTES: none
-
+	
 	DBA NAME: {1}
 	FDMS MID: {3}
 	WP MID: {2}
@@ -26,6 +26,22 @@ class NotepadPP extends Application
 	EMAIL: [required!]
 	ACCOUNT UPDATES: [new address, contact, phone, etc]
 	SHIPPING ADDRESS:
-
 	)"
+	
+	NewFile()
+	{
+		Send "^n"
+		Sleep 200
+		return this
+	}
+	
+	; sets file to Markdown syntax option
+	ChangeSyntaxLang()
+	{
+		Sleep 100
+		Click 80, 824, "Right"
+		Sleep 100
+		Click 140, 740
+		return this
+	}
 }
