@@ -24,6 +24,8 @@ routine := Routines()
 
 win.Initialize()
 
+F5:: win.FocusWindow(ob)
+
 F8:: routine.GetCAPSAccount(win, caps)
 
 ^F8:: routine.GetSalesforceAccount(win, edge, sf)

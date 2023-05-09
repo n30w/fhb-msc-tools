@@ -13,7 +13,6 @@ class Routines
 	{
 		this.data.cb.Attach(s)
 		this.data.cb.Paste()
-		this.data.cb.Clean()
 	}
 	
 	; searches CAPS for a single MID
@@ -76,7 +75,7 @@ class Routines
 			this.GetCAPSAccount(win, caps)
 			wp := DataHandler.Sanitize(this.data.cb.Board)
 			
-			Sleep 1500
+			Sleep 2100
 			
 			this.data.CopyFields(
 				caps.StoreAddr1,
@@ -108,10 +107,9 @@ class Routines
 			`t{5}
 			)"), caps.StoreAddr1.val, caps.StoreAddr2.val, caps.StoreCity.val, caps.StoreState.val, caps.StoreZip.val)
 			
-			; import that formatted data into obsidian
+			; import that formatted data into obsidian onto new document
 			win.FocusWindow(ob)
-			ob.OpenOpenMenu(dba)
-			
+			ob.OpenOpenMenu(( caps.StoreState.val = "HI" ? "Hawaii/" : "Guam-Saipan/" ) . dba)
 			this.AttachAndPaste(formattedTemplate)
 		}
 		return this
