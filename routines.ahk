@@ -3,6 +3,7 @@
 #Include "actions.ahk"
 #Include "windows.ahk"
 #Include "data.ahk"
+#Include "log.ahk"
 
 class Routines
 {

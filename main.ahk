@@ -3,8 +3,11 @@
 #Include "windows.ahk"
 #Include "workflows.ahk"
 #Include "routines.ahk"
+#Include "log.ahk"
 
 ; initialize any external scripts needed for startup
+
+lg := Logger("logs\")
 
 Run("ps\mount.bat")
 
@@ -19,7 +22,7 @@ edge := MSEdge("Edge", "resources\edge.lnk", "ahk_exe msedge.exe")
 sf := SalesforceDB("Salesforce", "", "")
 ob := ObsidianVault("Obsidian", "resources\obsidian.lnk", "ahk_exe Obsidian.exe")
 
-win := Windows(caps, npp, edge, ob)
+win := Windows(lg, caps, npp, edge, ob)
 routine := Routines()
 
 win.Initialize()

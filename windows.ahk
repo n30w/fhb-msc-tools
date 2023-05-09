@@ -1,6 +1,7 @@
 #Requires AutoHotkey v2.0
 
 #Include "actions.ahk"
+#Include "log.ahk"
 
 WinExists(app)
 {
@@ -14,8 +15,9 @@ class Windows
 {
 	ProcessList := Array()
 	
-	__New(processes*) ; append processes to ProcessList
+	__New(logger, processes*) ; append processes to ProcessList
 	{
+		this.logger := logger
 		for app in processes
 		{
 			this.ProcessList.Push(app)
@@ -25,11 +27,13 @@ class Windows
 	; Initialize all necessary windows 
 	Initialize()
 	{
+		this.logger.Append("Initializing windows...")
 		for app in this.ProcessList
 		{
 			if not WinExists(app)
 				app.Start()
 		}
+		this.logger.Append("Successfully initialized windows")
 	}
 	
 	FocusWindow(app)
