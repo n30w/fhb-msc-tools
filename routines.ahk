@@ -9,10 +9,16 @@ class Routines
 {
 	data := DataHandler()
 	
+	__New(logger)
+	{
+		this.logger := logger
+	}
+	
 	; attaches something to clippy and pastes it
 	AttachAndPaste(s)
 	{
 		this.data.cb.Attach(s)
+		Sleep 250
 		this.data.cb.Paste()
 	}
 	
@@ -39,7 +45,7 @@ class Routines
 		}
 		catch
 		{
-			DoesNotExist(mid)
+			DoesNotExist(this.GetSalesforceAccount.Name, this.logger, mid)
 			return
 		}
 		
@@ -56,7 +62,18 @@ class Routines
 	{	
 		fileExists := false
 		wp := DataHandler.Sanitize(this.data.cb.Update())
-		dba := DataHandler.Retrieve(wp).AccountName
+		
+		try
+		{
+			dba := DataHandler.Retrieve(wp).AccountName
+		}
+		catch
+		{
+			DoesNotExist(this.GenerateOrder.Name, this.logger, wp)
+			Clippy.Shove(wp)
+			return
+		}
+		
 		path := "..\merchants\*.md"
 		fileName := ""
 		
@@ -135,7 +152,7 @@ class Routines
 		}
 		catch
 		{
-			DoesNotExist(c)
+			DoesNotExist(this.DataStoreQuickLook.Name, this.logger, c)
 			return
 		}
 		

@@ -4,6 +4,7 @@ class ObsidianVault extends Application
 {
 	templateText := "
 	(
+	#todo
 	~
 	
 	
@@ -30,5 +31,6 @@ class ObsidianVault extends Application
 		Send s
 		Sleep 100
 		Send "{Enter}"
+		Sleep 300
 	}
 }

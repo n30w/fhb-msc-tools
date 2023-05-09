@@ -27,13 +27,13 @@ class Windows
 	; Initialize all necessary windows 
 	Initialize()
 	{
-		this.logger.Append("Initializing windows...")
+		this.logger.Append(,"Initializing windows...")
 		for app in this.ProcessList
 		{
 			if not WinExists(app)
 				app.Start()
 		}
-		this.logger.Append("Successfully initialized windows")
+		this.logger.Append(,"Successfully initialized windows")
 	}
 	
 	FocusWindow(app)

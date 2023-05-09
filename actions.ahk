@@ -15,9 +15,11 @@ YesNoBox(t)
 	return MsgBox(t,, "YesNo")
 }
 
-DoesNotExist(v)
+DoesNotExist(n, l, v)
 {
-	return MsgBox(v . " does not exist in DataStore. Check WP or SF.",, "IconX")
+	m := v . " does not exist in DataStore. Check WP or SF."
+	l.Append(n, m)
+	return MsgBox(m,, "IconX")
 }
 
 class Action

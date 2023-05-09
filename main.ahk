@@ -5,13 +5,15 @@
 #Include "routines.ahk"
 #Include "log.ahk"
 
-; initialize any external scripts needed for startup
+lg := Logger()
 
-lg := Logger("logs\")
+; initialize any external scripts needed for startup
 
 Run("ps\mount.bat")
 
-CoordMode "Mouse", "Window" ; Globally set CoordMode to Mouse and Window
+CoordMode "Mouse", "Window" ; globally set CoordMode to Mouse and Window
+
+; build the DataStore for RAM access
 
 DataHandler.BuildStore("resources\data.csv")
 
@@ -22,10 +24,14 @@ edge := MSEdge("Edge", "resources\edge.lnk", "ahk_exe msedge.exe")
 sf := SalesforceDB("Salesforce", "", "")
 ob := ObsidianVault("Obsidian", "resources\obsidian.lnk", "ahk_exe Obsidian.exe")
 
-win := Windows(lg, caps, npp, edge, ob)
-routine := Routines()
+; window and routine objects
 
-win.Initialize()
+win := Windows(lg, edge, ob, caps)
+routine := Routines(lg)
+
+win.Initialize() ; open windows if not already open
+
+; Hotkeys
 
 F5:: win.FocusWindow(ob)
 
@@ -33,10 +39,14 @@ F8:: routine.GetCAPSAccount(win, caps)
 
 ^F8:: routine.GetSalesforceAccount(win, edge, sf)
 
-^+F8::  routine.GetCAPSAccount(win, caps).GetSalesforceAccount(win, edge, sf)
+^+F8:: routine.GetCAPSAccount(win, caps).GetSalesforceAccount(win, edge, sf)
 
 F9:: routine.GenerateOrder(win, caps, ob)
 
 F10:: routine.DataStoreQuickLook()
+
+; Emergency brakes
+
+F12:: ExitApp
 
 ^!x:: Reload
