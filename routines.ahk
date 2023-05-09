@@ -31,9 +31,19 @@ class Routines
 	{
 		mid := this.data.cb.Update()
 		mid := DataHandler.Sanitize(mid)
+		
+		try
+		{
+			this.data.cb.Board := sf.AccountURL(DataHandler.Retrieve(mid).AccountID)
+		}
+		catch
+		{
+			DoesNotExist(mid)
+			return
+		}
+		
 		win.FocusWindow(edge)
 		edge.FocusURLBar()
-		this.data.cb.Board := sf.AccountURL(DataHandler.Retrieve(mid).AccountID)
 		this.data.cb.Paste()
 		Send "{Enter}"
 		this.data.cb.Clean()
@@ -70,7 +80,7 @@ class Routines
 			tt := ob.templateText
 			
 			; copy stuff from CAPS
-			A_Clipboard := wp
+			Clippy.Shove(wp)
 			
 			this.GetCAPSAccount(win, caps)
 			wp := DataHandler.Sanitize(this.data.cb.Board)

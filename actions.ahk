@@ -15,6 +15,11 @@ YesNoBox(t)
 	return MsgBox(t,, "YesNo")
 }
 
+DoesNotExist(v)
+{
+	return MsgBox v . " does not exist in DataStore. Check WP or SF.",, "IconX"
+}
+
 class Action
 {
 	then(fn)

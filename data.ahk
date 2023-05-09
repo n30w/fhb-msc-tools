@@ -81,6 +81,9 @@ class DataHandler
 ; abstracts away A_Clipboard
 class Clippy
 {
+	; access A_Clipboard directly. Shove a value into it!
+	static Shove(v) => A_Clipboard := v
+	
 	Board := ""
 	
 	emptyA_Clipboard() => A_Clipboard := ""
