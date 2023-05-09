@@ -17,7 +17,7 @@ YesNoBox(t)
 
 DoesNotExist(v)
 {
-	return MsgBox v . " does not exist in DataStore. Check WP or SF.",, "IconX"
+	return MsgBox(v . " does not exist in DataStore. Check WP or SF.",, "IconX")
 }
 
 class Action

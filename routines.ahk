@@ -128,7 +128,16 @@ class Routines
 	DataStoreQuickLook()
 	{
 		c := this.data.cb.Update()
-		r := DataHandler.Retrieve(DataHandler.Sanitize(c))
+		try
+		{
+			r := DataHandler.Retrieve(DataHandler.Sanitize(c))
+		}
+		catch
+		{
+			DoesNotExist(c)
+			return
+		}
+		
 		s := ""
 		for k, v in r.OwnProps()
 		{
