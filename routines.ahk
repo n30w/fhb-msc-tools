@@ -143,6 +143,124 @@ class Routines
 		return this
 	}
 	
+	ExportPDFSToAudit(win, caps, excel)
+	{
+		tempRef := excel.Ref ; store current ref in temp var
+		excel.Ref := "fdms fee code list - Excel"
+		
+		merchants(m)
+		{
+			Loop read, "mids.txt"
+			{
+				attr := StrSplit(A_LoopReadLine, A_Tab)
+				merchant := {wpmid: attr[1], fdmid: attr[2], dba: ""}
+				m.Push(merchant)
+			}
+		}
+		
+		StartTime := A_TickCount
+		prevFDMID := ""
+		
+		FolderPath := "toAudit\list\{1}\2023.FDMS conversion\"
+		
+		data := Array()
+		merchants(data) ; gets mids from text file and stores in array
+		
+		for merchant in data ; get corresponding DBA for each WP MID, create folder if it doesn't exist.
+		{
+			merchant.dba := DataHandler.Retrieve(merchant.wpmid)
+			
+			MerchantDir := Format(FolderPath, merchant.dba)
+			
+			; if there are no matching DBAs, make a new folder
+			if not DirExist(MerchantDir)
+				DirCreate MerchantDir
+			
+			; if CAPS fee doesn't exist, access CAPS and create pdf
+			if not FileExist(MerchantDir . "CAPS fees.pdf")
+			{
+				caps.SaveCAPSFeesPDF()
+				
+				try FileMove "CAPS fees.pdf", p, 1
+				catch 
+				{
+					this.logger.Append(caps, Format("{1} {2} {3}`n - file already exists or cannot move", merchant.dba, merchant.wpmid, merchant.fdmid))
+					FileDelete "CAPS fees.pdf"
+				}
+				
+				Sleep 1000
+			}
+			
+			Clippy.Shove("")
+			
+			; generate PDF from Account Fee code listing document
+			if not FileExist(MerchantDir . "FDMID code listing.pdf")
+			{
+				win.FocusWindow(excel)
+				excel.OpenColumnAFilterDropdown(merchant.fdmid)
+				
+				; https://www.autohotkey.com/board/topic/62646-convert-clipboard-to-integer/
+				; copying from excel always has `r`n, so must remove it
+				if (Substr(A_Clipboard,1,-2) = prevFDMID) ; current FDMID is not in the list
+				{
+					this.logger.Append(excel, merchant.dba . " " . merchant.fdmid . " has no listings in Account Fee Code Listings")
+					Clippy.Shove("")
+					Sleep 2000
+				}
+				else
+				{
+					Send "^+p" ; save as PDF macro
+					If WinWait("Save As", , 4)
+					{
+						;Sleep 3700
+						Send "FDMID code listing"
+						Sleep 500
+						Send "{Enter}"
+						Sleep 1500
+						try FileMove "FDMID code listing.pdf", p, 1
+						catch
+						{
+							this.logger.Append(,"Failed to move FDMID - " . merchant.fdmid . " " . merchant.dba)
+							try FileDelete "FDMID code listing.pdf"
+							catch
+							{
+								this.logger.Append("Failed to delete, file does not exist. Looks like " . merchant.fdmid . " has no associated rows")
+								Sleep 500
+								Send "{Esc}"
+							}
+							Sleep 200
+						}
+					}
+					else
+					{
+						MsgBox "Print to PDF not selected, press OK to reload"
+						Return
+					}
+				}
+			}
+			
+			prevFDMID := merchant.fdmid
+			Clippy.Shove("")	
+			
+			Sleep 1000
+			;MsgBox "a"
+		}
+		
+		excel.Ref := tempRef
+		
+		Send "{Esc 2}"
+		ElapsedTime := A_TickCount - StartTime
+		
+		; Convert to Minutes, Seconds, And Milliseconds here.
+		m := Round(ElapsedTime/60000)
+		r := Mod(ElapsedTime, 60000)
+		s := Round(r/1000)
+		r := Mod(r, 1000)
+		mi := r
+		
+		MsgBox "Operation complete in " . m . "m" . s . "s" . mi . "ms"
+	}
+	
 	DataStoreQuickLook()
 	{
 		c := this.data.cb.Update()

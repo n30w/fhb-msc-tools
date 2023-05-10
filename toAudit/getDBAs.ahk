@@ -1,31 +1,3 @@
-NavigateCaps()
-{
-	Sleep 1500
-	Click 276, 42
-	Click 274, 105
-	Click 30, 66
-}
-
-OpenCaps()
-{
-	Run "C:\Users\ralabastro\AppData\Local\Apps\2.0\DJVY1VY9.CG0\M17B2GO8.4ME\caps..tion_57d36b76fd0aefc8_0004.0006_4976a6dff7a6e371\CAPS.exe"
-	NavigateCaps()
-}
-
-getDBA()
-{
-	CoordMode "Mouse", "Window"
-	Sleep 500
-	Click 160, 130
-	Send "{Ctrl down}c"
-	Sleep 100
-	Send "{Ctrl up}"
-	dba := Format("{:T}", A_Clipboard)
-	A_Clipboard := ""
-	Sleep 500
-	return dba
-}
-
 merchants(m)
 {
 	Loop read, "mids.txt"

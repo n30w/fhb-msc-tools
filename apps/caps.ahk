@@ -32,6 +32,39 @@ class CapsDB extends Application
 		Send "{Enter}"
 	}
 	
+	SaveCAPSFeesPDF()
+	{
+		SendEvent "{Click 52, 70}"
+		Sleep 3000
+		SendEvent "{Click 52, 40}"
+		Sleep 4000
+
+		MouseMove 177, 78, 50
+		Click
+		
+		Sleep 1000
+		
+		loop 3 {
+			Send "{Up}"
+			Sleep 100
+		}
+		
+		Send "{Enter}"
+		Sleep 500
+		Send "{Enter}"
+		Sleep 2000
+		
+		Send "CAPS fees"
+		Send "{Enter}"
+		Sleep 2500
+		
+		Send "{Alt down}{F4}"
+		Sleep 300
+		Send "{Alt up}"
+		
+		Sleep 1000
+	}
+	
 	Start()
 	{
 		Open(this)
