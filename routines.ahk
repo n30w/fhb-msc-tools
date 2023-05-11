@@ -148,9 +148,14 @@ class Routines
 		tempRef := excel.Ref ; store current ref in temp var
 		excel.Ref := "fdms fee code list - Excel"
 		
+		localCAPSPDF := "auditing\CAPS fees.pdf"
+		localFDMSPDF := "auditing\FDMID code listing.pdf"
+		
+		this.logger.append(this.ExportPDFSToAudit,"starting export...")
+		
 		merchants(m)
 		{
-			Loop read, "mids.txt"
+			Loop read, "auditing\mids.txt"
 			{
 				attr := StrSplit(A_LoopReadLine, A_Tab)
 				merchant := {wpmid: attr[1], fdmid: attr[2], dba: ""}
@@ -159,16 +164,15 @@ class Routines
 		}
 		
 		StartTime := A_TickCount
-		prevFDMID := ""
 		
-		FolderPath := "toAudit\list\{1}\2023.FDMS conversion\"
+		FolderPath := "auditing\directories\{1}\2023.FDMS conversion\"
 		
 		data := Array()
 		merchants(data) ; gets mids from text file and stores in array
 		
 		for merchant in data ; get corresponding DBA for each WP MID, create folder if it doesn't exist.
 		{
-			merchant.dba := DataHandler.Retrieve(merchant.wpmid)
+			merchant.dba := DataHandler.Retrieve(merchant.wpmid).AccountName
 			
 			MerchantDir := Format(FolderPath, merchant.dba)
 			
@@ -177,15 +181,20 @@ class Routines
 				DirCreate MerchantDir
 			
 			; if CAPS fee doesn't exist, access CAPS and create pdf
-			if not FileExist(MerchantDir . "CAPS fees.pdf")
+			if not FileExist(MerchantDir . "CAPS fees - " . merchant.wpmid . ".pdf")
 			{
-				caps.SaveCAPSFeesPDF()
+				Clippy.Shove(merchant.wpmid)
+				win.FocusWindow(caps)
+				this.GetCAPSAccount(win, caps)
+				caps.SaveCAPSFeesPDF("CAPS fees - " . merchant.wpmid)
 				
-				try FileMove "CAPS fees.pdf", p, 1
-				catch 
+				localCAPSPDF := "auditing\CAPS fees - " . merchant.wpmid . ".pdf"
+				
+				try FileMove localCAPSPDF, MerchantDir, 1
+				catch as e
 				{
-					this.logger.Append(caps, Format("{1} {2} {3}`n - file already exists or cannot move", merchant.dba, merchant.wpmid, merchant.fdmid))
-					FileDelete "CAPS fees.pdf"
+					this.logger.Append(caps, Format("{1} {2} {3} - {4}", merchant.dba, merchant.wpmid, merchant.fdmid, e.What))
+					FileDelete localCAPSPDF
 				}
 				
 				Sleep 1000
@@ -194,52 +203,43 @@ class Routines
 			Clippy.Shove("")
 			
 			; generate PDF from Account Fee code listing document
-			if not FileExist(MerchantDir . "FDMID code listing.pdf")
+			if not FileExist(MerchantDir . "FDMID code listing - " . merchant.wpmid . ".pdf")
 			{
 				win.FocusWindow(excel)
-				excel.OpenColumnAFilterDropdown(merchant.fdmid)
+				excel.FilterColumnMacro(merchant.fdmid)
 				
-				; https://www.autohotkey.com/board/topic/62646-convert-clipboard-to-integer/
-				; copying from excel always has `r`n, so must remove it
-				if (Substr(A_Clipboard,1,-2) = prevFDMID) ; current FDMID is not in the list
+				if A_Clipboard = "`r`n" ; current FDMID is not in the list
 				{
+					FileAppend(merchant.WPMID . " " . merchant.FDMID . " has no FDMID listed", MerchantDir . merchant.WPMID . " " . merchant.FDMID . " has no FDMID listed" . ".txt")
 					this.logger.Append(excel, merchant.dba . " " . merchant.fdmid . " has no listings in Account Fee Code Listings")
 					Clippy.Shove("")
-					Sleep 2000
+					Sleep 800
 				}
 				else
 				{
-					Send "^+p" ; save as PDF macro
-					If WinWait("Save As", , 4)
+					excel.DefaultPDFSaveMacro()
+					
+					; Wait for publish window to pull up and wait for its closure
+					WinWait "Publishing..." 
+					WinWaitClose
+					FileMove(localCAPSPDF, "auditing\FDMID code listing - " . merchant.wpmid . ".pdf")
+					
+					localCAPSPDF := "auditing\FDMID code listing - " . merchant.wpmid . ".pdf"
+					
+					try FileMove localFDMSPDF, MerchantDir, 1
+					catch as e
 					{
-						;Sleep 3700
-						Send "FDMID code listing"
-						Sleep 500
-						Send "{Enter}"
-						Sleep 1500
-						try FileMove "FDMID code listing.pdf", p, 1
-						catch
-						{
-							this.logger.Append(,"Failed to move FDMID - " . merchant.fdmid . " " . merchant.dba)
-							try FileDelete "FDMID code listing.pdf"
-							catch
-							{
-								this.logger.Append("Failed to delete, file does not exist. Looks like " . merchant.fdmid . " has no associated rows")
-								Sleep 500
-								Send "{Esc}"
-							}
-							Sleep 200
-						}
+						this.logger.Append(caps, Format("{1} {2} {3} - {4}", merchant.dba, merchant.wpmid, merchant.fdmid, e.What))
+						FileDelete localFDMSPDF
 					}
-					else
-					{
-						MsgBox "Print to PDF not selected, press OK to reload"
-						Return
-					}
+					Sleep 200
 				}
 			}
 			
-			prevFDMID := merchant.fdmid
+			this.logger.Append(this.ExportPDFSToAudit.Name, "Export of " .  merchant.dba . " " . merchant.wpmid . " " . merchant.fdmid . " completed")
+			
+			FileAppend(merchant.wpmid . A_Tab . merchant.fdmid . "`n", "auditing\completed.txt")
+			
 			Clippy.Shove("")	
 			
 			Sleep 1000
@@ -248,17 +248,19 @@ class Routines
 		
 		excel.Ref := tempRef
 		
-		Send "{Esc 2}"
-		ElapsedTime := A_TickCount - StartTime
+		Send "{Esc 1}"
+		FinishTime := A_TickCount
+		TotalTime := FinishTime - StartTime
 		
-		; Convert to Minutes, Seconds, And Milliseconds here.
-		m := Round(ElapsedTime/60000)
-		r := Mod(ElapsedTime, 60000)
+		m := Round(TotalTime/60000)
+		r := Mod(TotalTime, 60000)
 		s := Round(r/1000)
 		r := Mod(r, 1000)
 		mi := r
 		
-		MsgBox "Operation complete in " . m . "m" . s . "s" . mi . "ms"
+		this.logger.Append(, "===== " . data.length . " PDFs exported in " . m . "m " . s . "." . mi . "s" . " =====")
+		
+		MsgBox "PDF Export Complete"
 	}
 	
 	DataStoreQuickLook()

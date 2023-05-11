@@ -7,6 +7,11 @@
 
 lg := Logger()
 
+Stopped(ExitReason, ExitCode)
+{
+	lg.Append(, "===== Stopping due to " . ExitReason . " =====")
+}
+
 ; initialize any external scripts needed for startup
 
 Run("ps\mount.bat")
@@ -45,8 +50,12 @@ F9:: routine.GenerateOrder(win, caps, ob)
 
 F10:: routine.DataStoreQuickLook()
 
+^F11:: routine.ExportPDFSToAudit(win, caps, excel)
+
 ; Emergency brakes
 
 F12:: ExitApp
+
+OnExit Stopped
 
 ^!x:: Reload

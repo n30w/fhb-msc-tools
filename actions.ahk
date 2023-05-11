@@ -22,6 +22,12 @@ DoesNotExist(n, l, v)
 	return MsgBox(m,, "IconX")
 }
 
+; pause script
+ps()
+{
+	MsgBox "script paused"
+}
+
 class Action
 {
 	then(fn)

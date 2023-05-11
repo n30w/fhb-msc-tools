@@ -32,29 +32,32 @@ class CapsDB extends Application
 		Send "{Enter}"
 	}
 	
-	SaveCAPSFeesPDF()
+	SaveCAPSFeesPDF(n)
 	{
-		SendEvent "{Click 52, 70}"
-		Sleep 3000
-		SendEvent "{Click 52, 40}"
+		Click 52, 70
+		
 		Sleep 4000
-
-		MouseMove 177, 78, 50
-		Click
 		
-		Sleep 1000
-		
-		loop 3 {
-			Send "{Up}"
-			Sleep 100
+		c := PixelGetColor(950, 900)
+		while not c = "0xFFFFFF"
+		{
+			c := PixelGetColor(960, 1000)
 		}
 		
+		Click 52, 40
+		
+		WinWaitActive "Print"
+
+		Click 177, 78
+		Sleep 300
+		
+		Send "{Up 3}"
 		Send "{Enter}"
 		Sleep 500
 		Send "{Enter}"
 		Sleep 2000
 		
-		Send "CAPS fees"
+		Send n
 		Send "{Enter}"
 		Sleep 2500
 		

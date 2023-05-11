@@ -8,3 +8,5 @@ resources/data.xlsm
 toAudit/fdms fee code list.xlsm
 *.txt
 *.xlsm
+*.pdf
+*.tmp

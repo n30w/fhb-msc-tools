@@ -25,6 +25,28 @@ class MSExcel extends Application
 		Send "{Ctrl up}"
 	}
 	
+	OpenPrintToPDFMacro()
+	{
+		Send "^+p"
+		Sleep 300
+	}
+	
+	DefaultPDFSaveMacro()
+	{
+		Send "^+d"
+		Sleep 300
+	}
+	
+	FilterColumnMacro(fdmid)
+	{
+		Send "^+f"
+		Sleep 300
+		Send fdmid
+		Sleep 100
+		Send "{Enter}"
+		Sleep 3000
+	}
+	
 	Start()
 	{
 		Open(this)
