@@ -44,10 +44,11 @@ class Windows
 		}
 		else
 		{
-			if YesNoBox(app.Name . " is not running. Would you like to start it?") = "No"
-				return
-			else
+			if YesNoBox(app.Name . " is not running. Would you like to start it?") = "Yes"
 				app.Start()
+			else
+				MsgBox "Exiting routine..."
+				return
 		}
 	}
 }

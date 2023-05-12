@@ -32,6 +32,7 @@ class CapsDB extends Application
 		Send "{Enter}"
 	}
 	
+	; saves the charge fees from CAPS
 	SaveCAPSFeesPDF(n)
 	{
 		Click 52, 70

@@ -25,16 +25,26 @@ class MSExcel extends Application
 		Send "{Ctrl up}"
 	}
 	
-	OpenPrintToPDFMacro()
+	SaveToPDFMacro(n)
 	{
 		Send "^+p"
-		Sleep 300
+		; wait for Save As window to pull up and wait for its closure before continuing
+		WinWaitActive "Save As"
+		Send n
+		Send "{Enter}"
+		; Wait for publish window to pull up and wait for its closure before continuing
+		WinWait "Publishing..." 
+		WinWaitClose
 	}
 	
 	DefaultPDFSaveMacro()
 	{
 		Send "^+d"
 		Sleep 300
+		
+		; Wait for publish window to pull up and wait for its closure before continuing
+		WinWait "Publishing..." 
+		WinWaitClose
 	}
 	
 	FilterColumnMacro(fdmid)
@@ -54,5 +64,5 @@ class MSExcel extends Application
 			WinMinimize ; Use the window found by WinWait.
 		else
 			MsgBox "WinWait timed out looking for Excel..."
-	} ;.AutoFilter Field:11, Critera1:=FeeCodes
+	}
 }

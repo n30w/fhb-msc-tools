@@ -50,7 +50,7 @@ class Routines
 		}
 		
 		win.FocusWindow(edge)
-		edge.FocusURLBar()
+		edge.NewTab()
 		this.data.cb.Paste()
 		Send "{Enter}"
 		this.data.cb.Clean()
@@ -62,16 +62,30 @@ class Routines
 	{	
 		fileExists := false
 		wp := DataHandler.Sanitize(this.data.cb.Update())
-		
+		dba := ""
+		fdmid := ""
+		dbaExistsInDataStore := true
+		fdmidExistsInDataStore := true
+
 		try
 		{
+			; retrieve dba from DataStore
 			dba := DataHandler.Retrieve(wp).AccountName
 		}
 		catch
 		{
-			DoesNotExist(this.GenerateOrder.Name, this.logger, wp)
-			Clippy.Shove(wp)
-			return
+			; if not in DataStore open caps and get the DBA from there
+			dbaExistsInDataStore := false
+		}
+
+		try
+		{
+			; retrieve fdmid from DataStore
+			fdmid := DataHandler.Retrieve(wp).FDMID ;( fdmid = "" ? "no FDMID found" : fdmid )
+		}
+		catch
+		{
+			fdmidExistsInDataStore := false
 		}
 		
 		path := "..\merchants\*.md"
@@ -104,7 +118,12 @@ class Routines
 			wp := DataHandler.Sanitize(this.data.cb.Board)
 			
 			Sleep 2100
-			
+			if not dbaExistsInDataStore
+				dba := this.data.CopyFields(caps.DBA)
+
+			if not fdmidExistsInDataStore
+				fdmid := "=== check salesforce ==="
+
 			this.data.CopyFields(
 				caps.StoreAddr1,
 				caps.StoreAddr2,
@@ -116,9 +135,9 @@ class Routines
 			; format data into a string
 			formattedTemplate := Format(
 				tt, 
-				dba, 
+				dba,
 				wp,
-				DataHandler.Retrieve(wp).FDMID ;( fdmid = "" ? "no FDMID found" : fdmid )
+				fdmid
 			)
 			
 			; create shipping address, varies if StoreAddr2 has val
@@ -143,15 +162,17 @@ class Routines
 		return this
 	}
 	
+	GenerateOrderFromCAPSOnly(win, caps, ob)
+	{
+
+	}
+
 	ExportPDFSToAudit(win, caps, excel)
 	{
 		tempRef := excel.Ref ; store current ref in temp var
-		excel.Ref := "fdms fee code list - Excel"
-		
-		localCAPSPDF := "auditing\CAPS fees.pdf"
-		localFDMSPDF := "auditing\FDMID code listing.pdf"
-		
-		this.logger.append(this.ExportPDFSToAudit,"starting export...")
+		excel.Ref := "fdms fee code list  -  Repaired - Excel"
+
+		this.logger.append(this.ExportPDFSToAudit,"Starting export...")
 		
 		merchants(m)
 		{
@@ -176,61 +197,61 @@ class Routines
 			
 			MerchantDir := Format(FolderPath, merchant.dba)
 			
+			CAPSPDFName := "CAPS fees - " . merchant.wpmid
+			FDMIDPDFName := "FDMID code listing - " . merchant.wpmid
+			
+			currentCAPSPDFPath := ""
+			currentFDMSPDFPath := ""
+
 			; if there are no matching DBAs, make a new folder
 			if not DirExist(MerchantDir)
 				DirCreate MerchantDir
 			
 			; if CAPS fee doesn't exist, access CAPS and create pdf
-			if not FileExist(MerchantDir . "CAPS fees - " . merchant.wpmid . ".pdf")
+			if not FileExist(MerchantDir . CAPSPDFName . ".pdf")
 			{
 				Clippy.Shove(merchant.wpmid)
 				win.FocusWindow(caps)
 				this.GetCAPSAccount(win, caps)
-				caps.SaveCAPSFeesPDF("CAPS fees - " . merchant.wpmid)
+				caps.SaveCAPSFeesPDF(CAPSPDFName)
 				
-				localCAPSPDF := "auditing\CAPS fees - " . merchant.wpmid . ".pdf"
+				currentCAPSPDFPath := "auditing\" . CAPSPDFName . ".pdf"
 				
-				try FileMove localCAPSPDF, MerchantDir, 1
+				try FileMove currentCAPSPDFPath, MerchantDir, 1
 				catch as e
 				{
 					this.logger.Append(caps, Format("{1} {2} {3} - {4}", merchant.dba, merchant.wpmid, merchant.fdmid, e.What))
-					FileDelete localCAPSPDF
+					FileDelete currentCAPSPDFPath
 				}
-				
 				Sleep 1000
 			}
 			
 			Clippy.Shove("")
 			
 			; generate PDF from Account Fee code listing document
-			if not FileExist(MerchantDir . "FDMID code listing - " . merchant.wpmid . ".pdf")
+			if not FileExist(MerchantDir . FDMIDPDFName . ".pdf")
 			{
 				win.FocusWindow(excel)
 				excel.FilterColumnMacro(merchant.fdmid)
 				
+				; "`r`n" is a value returned from the Excel Macro
 				if A_Clipboard = "`r`n" ; current FDMID is not in the list
 				{
 					FileAppend(merchant.WPMID . " " . merchant.FDMID . " has no FDMID listed", MerchantDir . merchant.WPMID . " " . merchant.FDMID . " has no FDMID listed" . ".txt")
 					this.logger.Append(excel, merchant.dba . " " . merchant.fdmid . " has no listings in Account Fee Code Listings")
 					Clippy.Shove("")
-					Sleep 800
+					Sleep 300
 				}
 				else
 				{
+					Clippy.Shove(FDMIDPDFName)
 					excel.DefaultPDFSaveMacro()
-					
-					; Wait for publish window to pull up and wait for its closure
-					WinWait "Publishing..." 
-					WinWaitClose
-					FileMove(localCAPSPDF, "auditing\FDMID code listing - " . merchant.wpmid . ".pdf")
-					
-					localCAPSPDF := "auditing\FDMID code listing - " . merchant.wpmid . ".pdf"
-					
-					try FileMove localFDMSPDF, MerchantDir, 1
+					currentFDMSPDFPath := "auditing\" . FDMIDPDFName . ".pdf"
+					try FileMove currentFDMSPDFPath, MerchantDir, 1
 					catch as e
 					{
-						this.logger.Append(caps, Format("{1} {2} {3} - {4}", merchant.dba, merchant.wpmid, merchant.fdmid, e.What))
-						FileDelete localFDMSPDF
+						this.logger.Append(caps, Format("{1} {2} {3} - ERROR: {4}", merchant.dba, merchant.wpmid, merchant.fdmid, e.What))
+						FileDelete currentFDMSPDFPath
 					}
 					Sleep 200
 				}
@@ -243,7 +264,6 @@ class Routines
 			Clippy.Shove("")	
 			
 			Sleep 1000
-			;MsgBox "a"
 		}
 		
 		excel.Ref := tempRef

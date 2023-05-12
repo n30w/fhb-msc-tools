@@ -22,17 +22,24 @@ Sub SaveAsPDF()
 End Sub
 
 ' Created with the help of ChatGPT
+' To get the Forms library, look here https://stackoverflow.com/questions/35664768/cant-find-microsoft-forms-2-0-object-library-or-fm20-dll
 Sub DefaultPDFSave()
     Dim filePath As Variant
+    Dim dataObj As MSForms.DataObject
+    Dim text As String
+    
+    Set dataObj = New MSForms.DataObject
+    
+    On Error Resume Next
+    dataObj.GetFromClipboard
+    text = dataObj.GetText
+    On Error GoTo 0
 
     ' Set the relative default save location for the PDF
     Dim defaultPath As String
     defaultPath = ThisWorkbook.Path
 
-    ' Prompt the user to specify the location to save the PDF
-    'filePath = Application.GetSaveAsFilename(InitialFileName:=defaultPath & "FDMID code listing", FileFilter:="PDF Files (*.pdf), *.pdf")
-    'ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, FileName:=filePath, Quality:=xlQualityStandard
-        ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, _
-        FileName:=defaultPath & "\FDMID code listing", Quality:=xlQualityMinimum, _
+    ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, _
+        FileName:=text, Quality:=xlQualityMinimum, _
         IncludeDocProperties:=False, IgnorePrintAreas:=False
 End Sub

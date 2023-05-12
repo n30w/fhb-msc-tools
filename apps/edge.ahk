@@ -8,4 +8,13 @@ class MSEdge extends Application
 		Send "^l"
 		Sleep 50
 	}
+
+	NewTab()
+	{
+		Sleep 50
+		Send "^t"
+		Sleep 50
+	}
+
+	GetTabTitle() => WinGetTitle("A")
 }
