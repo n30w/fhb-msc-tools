@@ -39,6 +39,7 @@ class CapsDB extends Application
 		
 		Sleep 4000
 		
+		; waits for PDF document to appear by checking if there is white
 		c := PixelGetColor(950, 900)
 		while not c = "0xFFFFFF"
 		{

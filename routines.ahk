@@ -58,6 +58,32 @@ class Routines
 		this.data.cb.Clean()
 		return this
 	}
+
+	; pulls up account view on Salesforce
+	GetSalesforceConversionCase(win, edge, sf)
+	{
+		mid := this.data.cb.Update()
+		mid := DataHandler.Sanitize(mid)
+		
+		try
+		{
+			this.data.cb.Board := sf.AccountURL(DataHandler.Retrieve(mid).CaseID)
+		}
+		catch
+		{
+			DoesNotExist(this.GetSalesforceConversionCase.Name, this.logger, mid)
+			return
+		}
+		
+		win.FocusWindow(edge)
+		if not edge.TabTitleContains("Salesforce")
+			edge.NewTab()
+		edge.FocusURLBar()
+		this.data.cb.Paste()
+		Send "{Enter}"
+		this.data.cb.Clean()
+		return this
+	}
 	
 	; gets data from CAPS and puts it into email order template
 	GenerateOrder(win, caps, ob)
@@ -285,6 +311,70 @@ class Routines
 		MsgBox "PDF Export Complete"
 	}
 	
+	PrepareClosureFormEmail(win, caps, ol)
+	{
+		wpmid := A_Clipboard
+		dba := ""
+		email := "Not Found"
+		mdPath := ""
+		fileName := ""
+		foundPos := 0
+
+		; pattern kindly given by ChatGPT
+		pattern := "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"
+
+		try
+		{
+			dba := DataHandler.Retrieve(wpmid).AccountName
+		}
+		catch
+		{
+			; if it doesn't exist in DS, go to CAPS to get it
+			win.FocusWindow(caps)
+			dba := this.data.CopyFields(caps.DBA)
+		}
+		
+		; get email from .md file
+		; get name of .md file
+		Loop Files, "..\merchants\*.md", "R"
+		{
+			SplitPath(A_LoopFileName, &fileName)
+			if fileName = dba . ".md"
+			{
+				mdPath := A_LoopFileFullPath
+				break
+			}
+		}
+
+		; parse it line by line, word by word
+		lineread:
+		Loop read, mdPath
+		{
+			words := StrSplit(A_LoopReadLine, A_Space, ".")
+			for word in words
+			{
+				word := DataHandler.Sanitize(word)
+				
+				foundPos := RegExMatch(word, pattern, &email)
+
+				MsgBox word . " " . foundPos
+				
+				if foundPos != 0
+					break lineread
+			}
+		}
+
+		win.FocusWindow(ol)
+		Sleep 100
+		ol.AccessMenuItem("y")
+		ol.SendClosureMacro()
+		Sleep 100
+		
+		; email[] because the brackets return the sub pattern
+		; https://www.autohotkey.com/docs/v2/lib/RegExMatch.htm#MatchObject
+		ol.To(email[]).CC().Subject("Close Account Request Form - " . dba . " (" . wpmid . ")").Body()
+	}
+
 	DataStoreQuickLook()
 	{
 		c := this.data.cb.Update()

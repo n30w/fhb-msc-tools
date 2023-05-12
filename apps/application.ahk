@@ -8,11 +8,13 @@ Open(s)
 
 class Application
 {
-	__New(name, path, ref)
+	__New(name, pathDir?, fileName?, ref?)
 	{
-		this.Name := name ; name for program
-		this.Path := path ; location with file name
-		this.Ref := ref ; reference by title or process name from AHK Window Spy
+		this.Name := name ; internal name for program
+		if not IsSet(fileName)
+			fileName := "none"
+		this.Path := ( IsSet(pathDir) ? pathDir . "\" . fileName : "resources\" . fileName ) ; use default resource path
+		this.Ref := ( IsSet(ref) ? ref : "none" ) ; reference by title or process name from AHK Window Spy
 	}
 	
 	; generic start function that can be overriden with custom start
