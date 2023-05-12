@@ -17,4 +17,20 @@ class MSEdge extends Application
 	}
 
 	GetTabTitle() => WinGetTitle("A")
+
+	; Returns true if there is a word in the title of a tab
+	TabTitleContains(word)
+	{
+		title := this.GetTabTitle()
+		words := StrSplit(title, A_Space)
+		hasWord := False
+		for w in words
+		{
+			if w = word
+			{
+				return True
+			}
+		}
+		return False
+	}
 }

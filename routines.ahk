@@ -50,7 +50,9 @@ class Routines
 		}
 		
 		win.FocusWindow(edge)
-		edge.NewTab()
+		if not edge.TabTitleContains("Salesforce")
+			edge.NewTab()
+		edge.FocusURLBar()
 		this.data.cb.Paste()
 		Send "{Enter}"
 		this.data.cb.Clean()
