@@ -25,6 +25,7 @@ DataHandler.BuildStore("resources\data.csv")
 caps := CapsDB("CAPS",, "CAPS.appref-ms", "CAPS")
 excel := MSExcel("ExcelDB",, "data.xlsm", "data - Excel")
 ol := OutlookMail("Outlook",, "outlook.lnk", "ahk_exe OUTLOOK.exe")
+aa := AdobeAcrobat("Adobe Acrobat",,,)
 npp := NotepadPP("Notepad++",, "notepad++.lnk", "ahk_exe notepad++.exe")
 edge := MSEdge("Edge",, "edge.lnk", "ahk_exe msedge.exe")
 sf := SalesforceDB("Salesforce",,,)
@@ -55,6 +56,8 @@ F9:: routine.GenerateOrder(win, caps, ob)
 F10:: routine.DataStoreQuickLook()
 
 ^F11:: routine.ExportPDFSToAudit(win, caps, excel)
+
+F4:: routine.OpenAuditFolder()
 
 ; Emergency brakes
 

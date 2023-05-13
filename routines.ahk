@@ -67,7 +67,7 @@ class Routines
 		
 		try
 		{
-			this.data.cb.Board := sf.AccountURL(DataHandler.Retrieve(mid).CaseID)
+			this.data.cb.Board := sf.CaseURL(DataHandler.Retrieve(mid).CaseID)
 		}
 		catch
 		{
@@ -81,8 +81,6 @@ class Routines
 		edge.FocusURLBar()
 		this.data.cb.Paste()
 		Send "{Enter}"
-		this.data.cb.Clean()
-		return this
 	}
 	
 	; gets data from CAPS and puts it into email order template
@@ -358,7 +356,7 @@ class Routines
 				foundPos := RegExMatch(word, pattern, &email)
 
 				MsgBox word . " " . foundPos
-				
+
 				if foundPos != 0
 					break lineread
 			}
@@ -373,6 +371,29 @@ class Routines
 		; email[] because the brackets return the sub pattern
 		; https://www.autohotkey.com/docs/v2/lib/RegExMatch.htm#MatchObject
 		ol.To(email[]).CC().Subject("Close Account Request Form - " . dba . " (" . wpmid . ")").Body()
+	}
+
+	OpenAuditFolder()
+	{
+		psFile := A_WorkingDir . "\ps\matchFolder.ps1"
+
+		folderName := this.data.cb.Update()
+		folderName := DataHandler.Sanitize(folderName)
+
+		; Build the PowerShell command line with the file and parameters
+		powerShellCmd := " powershell.exe -ExecutionPolicy Bypass -File " psFile " -folderName " folderName
+		
+		Run A_ComSpec, "powershell.exe -ExecutionPolicy Bypass -File " . psFile . " -folderName " . folderName
+	}
+
+	OpenAuditingWindows(win, edge, sf, aa)
+	{
+		this.GetSalesForceConversionCase(win, edge, sf)
+
+		dba := this.tryGetDBA(win, caps, this.data, this.data.cb.Board)
+
+		; use powershell script to open the folder for the Audit
+		
 	}
 
 	DataStoreQuickLook()
@@ -395,6 +416,21 @@ class Routines
 		}
 		
 		MsgBox(s, "Lookup " . c)
+	}
+
+	tryGetDBA(win, caps, data, wpmid)
+	{
+		try
+		{
+			dba := DataHandler.Retrieve(wpmid).AccountName
+		}
+		catch
+		{
+			; if it doesn't exist in DS, go to CAPS to get it
+			win.FocusWindow(caps)
+			dba := data.CopyFields(caps.DBA)
+		}
+		return dba
 	}
 }
 

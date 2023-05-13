@@ -20,6 +20,8 @@ class SalesforceDB extends Application
 	
 	AccountURL(s) => "https://fhbank.lightning.force.com/lightning/r/Account/" . this.urlID(s) . "/view"
 	
+	CaseURL(s) => "https://fhbank.lightning.force.com/lightning/r/Case/" . this.urlID(s) . "/view"
+
 	; build URL ID
 	urlID(s) => (s . this.convert15to18(s))
 

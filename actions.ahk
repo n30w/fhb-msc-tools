@@ -10,6 +10,7 @@
 #Include "apps\salesforce.ahk"
 #Include "apps\obsidian.ahk"
 #Include "apps\outlook.ahk"
+#Include "apps\adobeacrobat.ahk"
 
 YesNoBox(t)
 {
