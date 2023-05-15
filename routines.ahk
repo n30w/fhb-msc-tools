@@ -379,11 +379,11 @@ class Routines
 
 		folderName := this.data.cb.Update()
 		folderName := DataHandler.Sanitize(folderName)
+		folderName := DataHandler.Retrieve(folderName).AccountName
 
 		; Build the PowerShell command line with the file and parameters
 		powerShellCmd := " powershell.exe -ExecutionPolicy Bypass -File " psFile " -folderName " folderName
-		
-		Run A_ComSpec, "powershell.exe -ExecutionPolicy Bypass -File " . psFile . " -folderName " . folderName
+		Run "powershell.exe -ExecutionPolicy Bypass -File " . psFile . " -folderName " . "`"" .  folderName . "`""
 	}
 
 	OpenAuditingWindows(win, edge, sf, aa)
