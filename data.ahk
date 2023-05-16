@@ -150,3 +150,71 @@ class Field
 		this.Y := y
 	}
 }
+
+class FileHandler
+{
+	;  Recursively compares every file to a target file name in a directory; if match, returns path of a target file.
+	static RetrievePath(dir, name, ext)
+	{
+		fileName := ""
+		ext := "." . ext
+		Loop Files, dir . "\*" . ext, "R"
+		{
+			SplitPath(A_LoopFileName, &fileName)
+			if fileName = name . ext
+			{
+				foundPath := A_LoopFileFullPath
+				return foundPath
+			}
+		}
+		return "none"
+	}
+
+	; Reads all the words in a file, returns the first match of a pattern
+	static MatchPatternInFile(path, pattern)
+	{
+		; array position of found match
+		foundPos := 0
+
+		match := ""
+
+		; parse it line by line, word by word
+		Loop read, path
+		{
+			words := StrSplit(A_LoopReadLine, A_Space, ".")
+			for word in words
+			{
+				word := DataHandler.Sanitize(word)
+				
+				foundPos := RegExMatch(word, pattern, &match)
+
+				if foundPos != 0
+					return match
+			}
+		}
+	}
+
+	; Captures order from a file
+	ReadOrder(path)
+	{
+		div := False ; checks for divider ---
+		order := ""
+
+		; Only copy the order
+		Loop read, path
+		{
+			line := A_LoopReadLine 
+			if (line = "---") and (div = True)
+				break
+			if (line = "---")
+			{
+				div := True
+				continue
+			}
+			if div
+				order .= line . "`n"
+		}
+
+		return order
+	}
+}

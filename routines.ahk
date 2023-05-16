@@ -9,9 +9,10 @@ class Routines
 {
 	data := DataHandler()
 	
-	__New(logger)
+	__New(logger, fileOps)
 	{
 		this.logger := logger
+		this.fileOps := fileOps
 	}
 	
 	; attaches something to clippy and pastes it
@@ -62,8 +63,13 @@ class Routines
 	; pulls up account view on Salesforce
 	GetSalesforceConversionCase(win, edge, sf)
 	{
-		mid := this.data.cb.Update()
-		mid := DataHandler.Sanitize(mid)
+		mid := ""
+		if IsSet(m)
+			mid := m
+		else
+		{
+			mid := DataHandler.Sanitize(A_Clipboard)
+		}
 		
 		try
 		{
@@ -74,13 +80,17 @@ class Routines
 			DoesNotExist(this.GetSalesforceConversionCase.Name, this.logger, mid)
 			return
 		}
-		
+		Sleep 500
 		win.FocusWindow(edge)
 		if not edge.TabTitleContains("Salesforce")
 			edge.NewTab()
-		edge.FocusURLBar()
+		else
+			edge.FocusURLBar()
 		this.data.cb.Paste()
 		Send "{Enter}"
+		Clippy.Shove(mid)
+		Sleep 500
+		return this
 	}
 	
 	; gets data from CAPS and puts it into email order template
@@ -114,19 +124,10 @@ class Routines
 			fdmidExistsInDataStore := false
 		}
 		
-		path := "..\merchants\*.md"
-		fileName := ""
-		
 		; first check if the file even exists in merchant dir
-		Loop Files, path, "R"
-		{
-			SplitPath(A_LoopFileName, &fileName)
-			if fileName = dba . ".md"
-			{
-				fileExists := true
-				break
-			}
-		}
+		fileName := FileHandler.RetrievePath("..\merchants", dba, "md")
+		if not (fileName = "none")
+			fileExists := true
 			
 		if fileExists
 		{
@@ -157,7 +158,7 @@ class Routines
 				caps.StoreState,
 				caps.StoreZip
 			)
-			
+
 			; format data into a string
 			formattedTemplate := Format(
 				tt, 
@@ -173,12 +174,16 @@ class Routines
 			`t{2}
 			`t{3}, {4}
 			`t{5}
+
+			---`n
 			)") : "
 			(
 			`n`t{1}
 			`t{3}, {4}
 			`t{5}
-			)"), caps.StoreAddr1.val, caps.StoreAddr2.val, caps.StoreCity.val, caps.StoreState.val, caps.StoreZip.val)
+
+			---`n
+			)"), caps.StoreAddr1.val, caps.StoreAddr2.val, caps.StoreCity.val, caps.StoreState.val, caps.StoreZip.val) . ( caps.StoreState.val = "HI" ? "#Hawaii" : "#Guam-Saipan" ) . "`r`n"
 			
 			; import that formatted data into obsidian onto new document
 			win.FocusWindow(ob)
@@ -313,13 +318,11 @@ class Routines
 	{
 		wpmid := A_Clipboard
 		dba := ""
-		email := "Not Found"
 		mdPath := ""
-		fileName := ""
-		foundPos := 0
+		email := "Not Found"
 
-		; pattern kindly given by ChatGPT
-		pattern := "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"
+		; Regex pattern for emails, kindly given by ChatGPT
+		emailPattern := "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"
 
 		try
 		{
@@ -334,33 +337,8 @@ class Routines
 		
 		; get email from .md file
 		; get name of .md file
-		Loop Files, "..\merchants\*.md", "R"
-		{
-			SplitPath(A_LoopFileName, &fileName)
-			if fileName = dba . ".md"
-			{
-				mdPath := A_LoopFileFullPath
-				break
-			}
-		}
-
-		; parse it line by line, word by word
-		lineread:
-		Loop read, mdPath
-		{
-			words := StrSplit(A_LoopReadLine, A_Space, ".")
-			for word in words
-			{
-				word := DataHandler.Sanitize(word)
-				
-				foundPos := RegExMatch(word, pattern, &email)
-
-				MsgBox word . " " . foundPos
-
-				if foundPos != 0
-					break lineread
-			}
-		}
+		mdPath := FileHandler.RetrievePath("..\merchants", dba, "md")
+		email := FileHandler.MatchPatternInFile(mdPath, emailPattern)
 
 		win.FocusWindow(ol)
 		Sleep 100
@@ -373,27 +351,98 @@ class Routines
 		ol.To(email[]).CC().Subject("Close Account Request Form - " . dba . " (" . wpmid . ")").Body()
 	}
 
-	OpenAuditFolder()
+	PrepareConversionEmail(win, caps, ol)
 	{
-		psFile := A_WorkingDir . "\ps\matchFolder.ps1"
+		wpmid := A_Clipboard
+		dba := ""
+		mdPath := ""
+		order := ""
 
-		folderName := this.data.cb.Update()
-		folderName := DataHandler.Sanitize(folderName)
-		folderName := DataHandler.Retrieve(folderName).AccountName
+		try
+		{
+			dba := DataHandler.Retrieve(wpmid).AccountName
+		}
+		catch
+		{
+			; if it doesn't exist in DS, go to CAPS to get it
+			win.FocusWindow(caps)
+			dba := this.data.CopyFields(caps.DBA)
+		}
+		
+		; Find the correct md file to read
+		mdPath := FileHandler.RetrievePath("..\merchants", dba, "md")
+		order := this.fileOps.ReadOrder(mdPath)
+		MsgBox order
+		win.FocusWindow(ol)
+		Sleep 100
+		ol.AccessMenuItem("y").SendOrderMacro()
 
-		; Build the PowerShell command line with the file and parameters
-		powerShellCmd := " powershell.exe -ExecutionPolicy Bypass -File " psFile " -folderName " folderName
-		Run "powershell.exe -ExecutionPolicy Bypass -File " . psFile . " -folderName " . "`"" .  folderName . "`""
+		WinWaitActive "Ready For Conversion -  - Message (Rich Text) "
+
+		ol.GoToSubjectLineFromBody()
+		Send "{End}"
+		Send dba . " (" . wpmid . ")"
+		ol.GoToMiddleOfBodyFromSubjectLine()
+		
+		Send order
 	}
 
-	OpenAuditingWindows(win, edge, sf, aa)
+	OpenAuditFolder(win, caps, edge, sf, wpmid?)
 	{
-		this.GetSalesForceConversionCase(win, edge, sf)
-
-		dba := this.tryGetDBA(win, caps, this.data, this.data.cb.Board)
-
-		; use powershell script to open the folder for the Audit
+		mid := ""
+		if IsSet(wpmid)
+			mid := wpmid
+		else
+		{
+			mid := this.data.cb.Update()
+			mid := DataHandler.Sanitize(mid)
+		}
 		
+		psFile := A_WorkingDir . "\ps\matchThenOpenPDF.ps1"
+		
+		folderName := this.tryGetDBA(win, caps, this.data, mid)
+
+		Run "powershell.exe -ExecutionPolicy Bypass -File " . psFile . " -folderName " . "`"" .  folderName . "`""
+
+		return this
+	}
+
+	ViewAuditFolder(win, caps, edge, sf, wpmid?)
+	{
+		mid := ""
+		if IsSet(wpmid)
+			mid := wpmid
+		else
+		{
+			mid := this.data.cb.Update()
+			mid := DataHandler.Sanitize(mid)
+		}
+		
+		psFile := A_WorkingDir . "\ps\matchFolder.ps1"
+		
+		folderName := this.tryGetDBA(win, caps, this.data, mid)
+
+		Run "powershell.exe -ExecutionPolicy Bypass -File " . psFile . " -folderName " . "`"" .  folderName . "`""
+
+		return this
+	}
+
+	ViewAuditPDFs(win, aa)
+	{
+		WinWaitActive aa.Ref
+		Sleep 2000
+		win.FocusWindow(aa)
+		wx := 0
+		WinGetPos(&wx,,,,WinGetTitle("A"))
+		if WinWaitActive("ahk_class AcrobatSDIWindow",,5)
+		{
+			if wx > 1920
+			win.MoveToLeftScreen(aa)
+			else
+				win.MoveToRightScreen(aa)
+			aa.GoToFinalPage()
+		}
+		return this
 	}
 
 	DataStoreQuickLook()
@@ -418,17 +467,28 @@ class Routines
 		MsgBox(s, "Lookup " . c)
 	}
 
-	tryGetDBA(win, caps, data, wpmid)
+	tryGetDBA(win, caps, data, wpmid?)
 	{
+		mid := ""
+		if IsSet(wpmid)
+			mid := wpmid
+		else
+		{
+			mid := this.data.cb.Update()
+			mid := DataHandler.Sanitize(mid)
+		}
+
 		try
 		{
-			dba := DataHandler.Retrieve(wpmid).AccountName
+			dba := DataHandler.Retrieve(mid).AccountName
 		}
 		catch
 		{
 			; if it doesn't exist in DS, go to CAPS to get it
 			win.FocusWindow(caps)
+			caps.clickBinocularAndSearch(mid)
 			dba := data.CopyFields(caps.DBA)
+			Sleep 200
 		}
 		return dba
 	}

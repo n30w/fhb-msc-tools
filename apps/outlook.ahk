@@ -57,5 +57,21 @@ class OutlookMail extends Application
     {
         Send "{Alt}" . key
         Sleep 100
+        return this
+    }
+
+    GoToSubjectLineFromBody()
+    {
+        Send "{Shift down}{Tab down}"
+		Sleep 200
+		Send "{Shift up}{Tab up}"
+    }
+
+    GoToMiddleOfBodyFromSubjectLine()
+    {
+        Send "{Tab down}"
+		Sleep 300
+		Send "{Tab up}"
+		Send "{Down 3}"
     }
 }

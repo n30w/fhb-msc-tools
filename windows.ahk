@@ -42,14 +42,34 @@ class Windows
 		{
 			WinActivate
 		}
+		else if WinWaitActive(app.Ref, , 5)
+		{
+			WinActivate app.Ref
+		}
 		else
 		{
 			if YesNoBox(app.Name . " is not running. Would you like to start it?") = "Yes"
 				app.Start()
 			else
-				MsgBox "Exiting routine..."
+				MsgBox "Unable to start " . app.Name . ". Exiting routine..."
 				return
 		}
+	}
+
+	MoveToLeftScreen(app)
+	{
+		this.FocusWindow(app)
+		Send "{LWin down}{Shift down}{Left down}"
+		Sleep 500
+		Send "{LWin up}{Shift up}{Left up}"
+	}
+
+	MoveToRightScreen(app)
+	{
+		this.FocusWindow(app)
+		Send "{LWin down}{Shift down}{Right down}"
+		Sleep 500
+		Send "{LWin up}{Shift up}{Right up}"
 	}
 }
 

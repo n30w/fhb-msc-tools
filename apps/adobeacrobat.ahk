@@ -2,5 +2,8 @@
 
 class AdobeAcrobat extends Application
 {
-    
+    GoToFinalPage()
+    {
+        Send "{End}"
+    }
 }
