@@ -70,12 +70,12 @@ class SalesforceDB extends Application
 		}
 		
 		altShiftB()
-		Send{"Enter"}
+		Send "{Enter}"
 		Sleep 200
 		
 		altShiftB()
-		Send {"Right 1"}
-		Send{"Enter"}
+		Send "{Right 1}"
+		Send "{Enter}"
 		Sleep 200
 
 		Clippy.Shove(fdmid)
@@ -86,8 +86,8 @@ class SalesforceDB extends Application
 		Sleep 400
 
 		altShiftB()
-		Send {"Right 2"}
-		Send{"Enter"}
+		Send "{Right 2}"
+		Send "{Enter}"
 		Sleep 200
 
 	}
