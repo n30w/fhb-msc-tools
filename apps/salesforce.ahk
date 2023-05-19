@@ -58,63 +58,37 @@ class SalesforceDB extends Application
 		dateObj := StrSplit(dateField, "-")
 		return this.months[dateObj[2]] . "/" . dateObj[1] . "/" . "20" . dateObj[3]
 	}
-}
 
-/*
-
-F5::
-{
-	; if we're copying from excel, remove the `r`n
-	wpMID := (StrLen(A_Clipboard) > 13 ? SubStr(A_Clipboard, 1, -2) : A_Clipboard)
-	
-	CoordMode "Mouse", "Window"
-	SearchCaps(wpMID)
-	A_Clipboard := ""
-	Sleep 1000
-	Click 730, 437
-	Sleep 600
-	Send "^c"
-	Sleep 200
-
-	if A_Clipboard = ""
+	UpdateFDMID(fdmid)
 	{
-		MsgBox wpMID . " has not been closed on WorldPay yet"
-		WinActivate("CAPS")
-		return
-	}
-	
-	formattedDate := reformatDate(months)
-	
-	WinActivate "WPMID_FDMID_CASEID - Excel"
-	Sleep 100
-	Send "^+k"
-	Sleep 100
-	Send wpMID
-	Sleep 100
-	Send "{Enter}"
-	Sleep 200
-	clip := A_Clipboard
-	parsed := SubStr(clip, 1, -2)
-	A_Clipboard := URL("account") . parsed . sf15to18(parsed) . "/view"
-	WinMinimize "WPMID_FDMID_CASEID - Excel"
-	
-	WinActivate "ahk_exe msedge.exe"
-	Sleep 50
-	Send "^l"
-	Sleep 50
-	Send "^v"
-	Sleep 100
-	Send "{Enter}"
-	A_Clipboard := formattedDate
-	
-	Sleep 9000
-	Click 181, 92
-	Sleep 1000
-	Click 248, 88
-	Sleep 400
-	Send "^v"
-	Sleep 500
-	Send "{Enter}"	
-}
-*/
+		altShiftB()
+		{
+			Send "{Alt down}{Shift down}b"
+			Sleep 150
+			Send "{Alt up}{Shift up}"
+			Sleep 150
+		}
+		
+		altShiftB()
+		Send{"Enter"}
+		Sleep 200
+		
+		altShiftB()
+		Send {"Right 1"}
+		Send{"Enter"}
+		Sleep 200
 
+		Clippy.Shove(fdmid)
+		Sleep 100
+		Send "^v"
+		Sleep 100
+		Send "{Enter}"
+		Sleep 400
+
+		altShiftB()
+		Send {"Right 2"}
+		Send{"Enter"}
+		Sleep 200
+
+	}
+}

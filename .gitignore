@@ -4,5 +4,6 @@
 *.txt
 *.pdf
 *.tmp
+config.ini
 auditing/directories
 *.oft

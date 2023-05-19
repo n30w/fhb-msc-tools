@@ -84,6 +84,19 @@ class Clippy
 	; access A_Clipboard directly. Shove a value into it!
 	static Shove(v) => A_Clipboard := v
 	
+	static IsEmpty(m)
+	{
+		if StrLen(m) < 1
+		{
+			MsgBox "No MID on Clipboard"
+			return True
+		}
+		else
+		{
+			return False
+		}
+	}
+
 	Board := ""
 	
 	emptyA_Clipboard() => A_Clipboard := ""
@@ -153,6 +166,12 @@ class Field
 
 class FileHandler
 {
+	__New()
+	{
+		this.ip := this.Config("Paths", "InputPath")
+		this.op := this.Config("Paths", "OutputPath")
+	}
+
 	;  Recursively compares every file to a target file name in a directory; if match, returns path of a target file.
 	static RetrievePath(dir, name, ext)
 	{
@@ -193,6 +212,8 @@ class FileHandler
 			}
 		}
 	}
+	
+	Config(s, k) => IniRead("config.ini", s, k)
 
 	; Captures order from a file
 	ReadOrder(path)
@@ -217,4 +238,17 @@ class FileHandler
 
 		return order
 	}
+
+	TextToMerchantArray(path)
+	{
+		merchants := Array()
+		Loop read, this.ip . path
+		{
+			attr := StrSplit(A_LoopReadLine, A_Tab)
+			merchant := {wpmid: attr[1], fdmid: attr[2], dba: ""}
+			merchants.Push(merchant)
+		}
+		return merchants
+	}
+		
 }

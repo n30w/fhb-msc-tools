@@ -40,6 +40,6 @@ Sub DefaultPDFSave()
     defaultPath = ThisWorkbook.Path
 
     ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, _
-        FileName:=text, Quality:=xlQualityMinimum, _
+        FileName:=defaultPath & "\" & text, Quality:=xlQualityMinimum, _
         IncludeDocProperties:=False, IgnorePrintAreas:=False
 End Sub

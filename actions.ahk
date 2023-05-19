@@ -11,6 +11,7 @@
 #Include "apps\obsidian.ahk"
 #Include "apps\outlook.ahk"
 #Include "apps\adobeacrobat.ahk"
+#Include "apps\powershell.ahk"
 
 YesNoBox(t)
 {
@@ -24,8 +25,10 @@ DoesNotExist(n, l, v)
 	return MsgBox(m,, "IconX")
 }
 
+psMatch(psFile, targetDir, folderName) => "powershell.exe -ExecutionPolicy Bypass -File " . psFile . " -folderName " . "`"" .  folderName . "`""
+
 ; pause script
-ps()
+pauseScript()
 {
 	MsgBox "script paused"
 }

@@ -11,6 +11,13 @@ class CapsDB extends Application
 	StoreState := Field(750, 250)
 	StoreZip := Field(750, 283)
 	
+	navigateErrorBox()
+	{
+		Send "{Right 2}"
+		Sleep 100
+		Send "{Enter}"
+	}
+
 	; clicks the info and contact via top menu bar
 	goToInfoAndContact()
 	{
@@ -30,6 +37,28 @@ class CapsDB extends Application
 		Send mid
 		Sleep 400
 		Send "{Enter}"
+		Sleep 500
+
+		capsErrorMsg := "none"
+
+		try
+		{
+			capsErrorMsg := WinGetText(this.Ref, "Unhandled exception has occurred")
+		}
+		catch
+		{
+			return
+		}
+
+		; retry this method if CAPS errors
+		if capsErrorMsg = "Unhandled exception has occurred"
+		{
+			this.navigateErrorBox()
+			Sleep 1000
+			this.Start()
+			Sleep 1000
+			this.clickBinocularAndSearch(mid)
+		}
 	}
 	
 	; saves the charge fees from CAPS

@@ -13,6 +13,7 @@ class Routines
 	{
 		this.logger := logger
 		this.fileOps := fileOps
+		this.sharedDrive := this.fileOps.Config("Paths", "SharedDrive")
 	}
 	
 	; attaches something to clippy and pastes it
@@ -28,9 +29,14 @@ class Routines
 	{
 		mid := this.data.cb.Update()
 		mid := DataHandler.Sanitize(mid)
+
+		if Clippy.IsEmpty(mid)
+			return this
+
 		win.FocusWindow(caps)
 		caps.clickBinocularAndSearch(mid)
 		Sleep 200
+		Clippy.Shove(mid)
 		return this
 	}
 	
@@ -40,6 +46,9 @@ class Routines
 		mid := this.data.cb.Update()
 		mid := DataHandler.Sanitize(mid)
 		
+		if Clippy.IsEmpty(mid)
+			return this
+
 		try
 		{
 			this.data.cb.Board := sf.AccountURL(DataHandler.Retrieve(mid).AccountID)
@@ -92,16 +101,64 @@ class Routines
 		Sleep 500
 		return this
 	}
+
+	AddFDMIDToSalesforce(win, edge, sf)
+	{
+		merchants := this.fileOps.TextToMerchantArray("addfdmidtosf.txt")
+		accountURL := ""
+		fdmid := ""
+		
+		win.FocusWindow(edge)
+		if not edge.TabTitleContains("Salesforce")
+			edge.NewTab()
+		
+
+		for m in merchants
+		{
+			
+			try
+			{
+				accountURL := sf.AccountURL(DataHandler.Retrieve(m.wpmid).AccountID)
+			}
+			catch
+			{
+				this.logger.Append(this.ConvertMIDToCaseID.Name, "ERROR: Unable to retrieve merchant AccountID => " . m.wpmid . " does not exist in DataStore")
+				continue
+			}
+
+			try
+			{
+				fdmid := DataHandler.Retrieve(m.wpmid).FDMID
+			}
+			catch
+			{
+				this.logger.Append(this.ConvertMIDToCaseID.Name, "ERROR: Unable to retrieve merchant FDMID => " . m.wpmid . " does not exist in DataStore")
+				continue
+			}
+			
+			edge.FocusURLBar()
+			Clippy.Shove(accountURL)
+			Send "{Enter}"
+			this.data.cb.Clean()
+			
+			sf.UpdateFDMID(fdmid)
+		}
+
+	}
 	
 	; gets data from CAPS and puts it into email order template
 	GenerateOrder(win, caps, ob)
-	{	
-		fileExists := false
+	{
 		wp := DataHandler.Sanitize(this.data.cb.Update())
+
+		if Clippy.IsEmpty(wp)
+			return this
+
 		dba := ""
 		fdmid := ""
-		dbaExistsInDataStore := true
-		fdmidExistsInDataStore := true
+		fileExists := False
+		dbaExistsInDataStore := True
+		fdmidExistsInDataStore := True
 
 		try
 		{
@@ -111,7 +168,7 @@ class Routines
 		catch
 		{
 			; if not in DataStore open caps and get the DBA from there
-			dbaExistsInDataStore := false
+			dbaExistsInDataStore := False
 		}
 
 		try
@@ -121,13 +178,13 @@ class Routines
 		}
 		catch
 		{
-			fdmidExistsInDataStore := false
+			fdmidExistsInDataStore := False
 		}
 		
 		; first check if the file even exists in merchant dir
 		fileName := FileHandler.RetrievePath("..\merchants", dba, "md")
 		if not (fileName = "none")
-			fileExists := true
+			fileExists := True
 			
 		if fileExists
 		{
@@ -145,19 +202,22 @@ class Routines
 			wp := DataHandler.Sanitize(this.data.cb.Board)
 			
 			Sleep 2100
-			if not dbaExistsInDataStore
-				dba := this.data.CopyFields(caps.DBA)
+			
 
 			if not fdmidExistsInDataStore
 				fdmid := "=== check salesforce ==="
 
 			this.data.CopyFields(
+				caps.DBA,
 				caps.StoreAddr1,
 				caps.StoreAddr2,
 				caps.StoreCity,
 				caps.StoreState,
 				caps.StoreZip
 			)
+
+			if not dbaExistsInDataStore
+				dba := caps.DBA.val
 
 			; format data into a string
 			formattedTemplate := Format(
@@ -190,37 +250,22 @@ class Routines
 			ob.OpenOpenMenu(( caps.StoreState.val = "HI" ? "Hawaii/" : "Guam-Saipan/" ) . dba)
 			this.AttachAndPaste(formattedTemplate)
 		}
+		Clippy.Shove(wp)
 		return this
-	}
-	
-	GenerateOrderFromCAPSOnly(win, caps, ob)
-	{
-
 	}
 
 	ExportPDFSToAudit(win, caps, excel)
 	{
 		tempRef := excel.Ref ; store current ref in temp var
-		excel.Ref := "fdms fee code list  -  Repaired - Excel"
+		excel.Ref := "fdms fee code list - Excel"
 
 		this.logger.append(this.ExportPDFSToAudit,"Starting export...")
-		
-		merchants(m)
-		{
-			Loop read, "auditing\mids.txt"
-			{
-				attr := StrSplit(A_LoopReadLine, A_Tab)
-				merchant := {wpmid: attr[1], fdmid: attr[2], dba: ""}
-				m.Push(merchant)
-			}
-		}
 		
 		StartTime := A_TickCount
 		
 		FolderPath := "auditing\directories\{1}\2023.FDMS conversion\"
 		
-		data := Array()
-		merchants(data) ; gets mids from text file and stores in array
+		data := this.fileOps.TextToMerchantArray("midtopdf.txt")
 		
 		for merchant in data ; get corresponding DBA for each WP MID, create folder if it doesn't exist.
 		{
@@ -277,7 +322,7 @@ class Routines
 				{
 					Clippy.Shove(FDMIDPDFName)
 					excel.DefaultPDFSaveMacro()
-					currentFDMSPDFPath := "auditing\" . FDMIDPDFName . ".pdf"
+					currentFDMSPDFPath := A_WorkingDir . "\auditing\" . FDMIDPDFName . ".pdf"
 					try FileMove currentFDMSPDFPath, MerchantDir, 1
 					catch as e
 					{
@@ -317,6 +362,10 @@ class Routines
 	PrepareClosureFormEmail(win, caps, ol)
 	{
 		wpmid := A_Clipboard
+		
+		if Clippy.IsEmpty(wpmid)
+			return this
+
 		dba := ""
 		mdPath := ""
 		email := "Not Found"
@@ -332,7 +381,8 @@ class Routines
 		{
 			; if it doesn't exist in DS, go to CAPS to get it
 			win.FocusWindow(caps)
-			dba := this.data.CopyFields(caps.DBA)
+			this.data.CopyFields(caps.DBA)
+			dba := caps.DBA.val
 		}
 		
 		; get email from .md file
@@ -354,6 +404,10 @@ class Routines
 	PrepareConversionEmail(win, caps, ol)
 	{
 		wpmid := A_Clipboard
+
+		if Clippy.IsEmpty(wpmid)
+			return this
+
 		dba := ""
 		mdPath := ""
 		order := ""
@@ -366,13 +420,23 @@ class Routines
 		{
 			; if it doesn't exist in DS, go to CAPS to get it
 			win.FocusWindow(caps)
-			dba := this.data.CopyFields(caps.DBA)
+			Sleep 300
+			this.data.CopyFields(caps.DBA)
+			dba := caps.DBA.val
 		}
 		
 		; Find the correct md file to read
 		mdPath := FileHandler.RetrievePath("..\merchants", dba, "md")
-		order := this.fileOps.ReadOrder(mdPath)
-		MsgBox order
+		
+		if mdPath = "none"
+		{
+			MsgBox "Unable to retrieve .md path"
+		}
+		else
+		{
+			order := this.fileOps.ReadOrder(mdPath)		
+		}
+		
 		win.FocusWindow(ol)
 		Sleep 100
 		ol.AccessMenuItem("y").SendOrderMacro()
@@ -387,7 +451,7 @@ class Routines
 		Send order
 	}
 
-	OpenAuditFolder(win, caps, edge, sf, wpmid?)
+	OpenAuditFolder(win, caps, edge, sf, ps, wpmid?)
 	{
 		mid := ""
 		if IsSet(wpmid)
@@ -396,18 +460,18 @@ class Routines
 		{
 			mid := this.data.cb.Update()
 			mid := DataHandler.Sanitize(mid)
+			if Clippy.IsEmpty(mid)
+				return this
 		}
 		
-		psFile := A_WorkingDir . "\ps\matchThenOpenPDF.ps1"
-		
 		folderName := this.tryGetDBA(win, caps, this.data, mid)
-
-		Run "powershell.exe -ExecutionPolicy Bypass -File " . psFile . " -folderName " . "`"" .  folderName . "`""
+		
+		Run(ps.ShowAuditFolder("matchThenOpenPDF.ps1", folderName))
 
 		return this
 	}
 
-	ViewAuditFolder(win, caps, edge, sf, wpmid?)
+	ViewAuditFolder(win, caps, edge, sf, ps, wpmid?)
 	{
 		mid := ""
 		if IsSet(wpmid)
@@ -416,13 +480,15 @@ class Routines
 		{
 			mid := this.data.cb.Update()
 			mid := DataHandler.Sanitize(mid)
+			if Clippy.IsEmpty(mid)
+				return this
 		}
 		
-		psFile := A_WorkingDir . "\ps\matchFolder.ps1"
+		psFile := A_WorkingDir . "\powershell\matchFolder.ps1"
 		
 		folderName := this.tryGetDBA(win, caps, this.data, mid)
 
-		Run "powershell.exe -ExecutionPolicy Bypass -File " . psFile . " -folderName " . "`"" .  folderName . "`""
+		Run(ps.Match(psFile, this.sharedDrive, folderName))
 
 		return this
 	}
@@ -445,9 +511,35 @@ class Routines
 		return this
 	}
 
+	ConvertMIDToCaseID()
+	{
+		this.logger.Append(this.ConvertMIDToCaseID.Name, "Started!")
+		outFile := Format(this.fileOps.Config("Paths", "OutputPath") . "GetMIDCaseID-{1}.txt", this.logger.getFileDateTime())
+		ci := ""
+		merchants := this.fileOps.TextToMerchantArray("midtocaseid.txt")
+
+		for m in merchants 
+		{
+			try
+			{
+				ci := DataHandler.Retrieve(DataHandler.Sanitize(m.wpmid)).CaseID
+			}
+			catch
+			{
+				this.logger.Append(this.ConvertMIDToCaseID.Name, "ERROR: Unable to retrieve merchant caseID => " . m.wpmid . " does not exist in DataStore")
+				continue
+			}
+			FileAppend(ci . "`r`n", outFile)
+		}
+		this.logger.Append(this.ConvertMIDToCaseID.Name, "Completed!")
+		MsgBox "Convert Mid to Case ID complete"
+	}
+
 	DataStoreQuickLook()
 	{
 		c := this.data.cb.Update()
+		if Clippy.IsEmpty(c)
+			return this
 		try
 		{
 			r := DataHandler.Retrieve(DataHandler.Sanitize(c))

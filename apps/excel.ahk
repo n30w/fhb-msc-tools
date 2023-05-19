@@ -43,7 +43,7 @@ class MSExcel extends Application
 		Sleep 300
 		
 		; Wait for publish window to pull up and wait for its closure before continuing
-		WinWait "Publishing..." 
+		WinWait "Publishing..."
 		WinWaitClose
 	}
 	

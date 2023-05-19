@@ -4,8 +4,8 @@ class Logger
 {
 	logFilePath := ""
 	
-	getFileDateTime() => FormatTime(,"yyyyMMdd-hhmmsstt")
-	getEntryDateTime() => FormatTime(,"hh:mm:ss tt")
+	GetFileDateTime() => FormatTime(,"yyyyMMdd-hhmmsstt")
+	GetEntryDateTime() => FormatTime(,"hh:mm:ss tt")
 	
 	__New(filePath?)
     {
@@ -15,13 +15,13 @@ class Logger
 			filePath := "logs\"
 		}
 		
-		this.logFilePath := filePath . this.getFileDateTime() . " log.txt"
+		this.logFilePath := filePath . this.GetFileDateTime() . " log.txt"
 		this.Append(,"System boot, logged in as " . StrUpper(A_Username))
     }
 	
     Append(app?, message := "")
     {
-        timestamp := this.getEntryDateTime()
+        timestamp := this.GetEntryDateTime()
         logEntry := "[" . timestamp . "] "
         
 		if IsSet(app)
