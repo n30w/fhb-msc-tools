@@ -104,46 +104,41 @@ class Routines
 
 	AddFDMIDToSalesforce(win, edge, sf)
 	{
+		this.data.cb.Clean()
 		merchants := this.fileOps.TextToMerchantArray("addfdmidtosf.txt")
-		accountURL := ""
+		au := ""
 		fdmid := ""
 		
 		win.FocusWindow(edge)
 		if not edge.TabTitleContains("Salesforce")
 			edge.NewTab()
 		
-
 		for m in merchants
 		{
-			
 			try
 			{
-				accountURL := sf.AccountURL(DataHandler.Retrieve(m.wpmid).AccountID)
+				au := sf.AccountURL(DataHandler.Retrieve(m.wpmid).AccountID)
 			}
 			catch
 			{
 				this.logger.Append(this.ConvertMIDToCaseID.Name, "ERROR: Unable to retrieve merchant AccountID => " . m.wpmid . " does not exist in DataStore")
 				continue
 			}
-
-			try
-			{
-				fdmid := DataHandler.Retrieve(m.wpmid).FDMID
-			}
-			catch
-			{
-				this.logger.Append(this.ConvertMIDToCaseID.Name, "ERROR: Unable to retrieve merchant FDMID => " . m.wpmid . " does not exist in DataStore")
-				continue
-			}
 			
+			fdmid := DataHandler.Retrieve(m.wpmid).FDMID
+
 			edge.FocusURLBar()
-			Clippy.Shove(accountURL)
+			Clippy.Shove(au)
+			Send "^v"
+			Sleep 100
 			Send "{Enter}"
 			this.data.cb.Clean()
-			
+			Sleep 4000
 			sf.UpdateFDMID(fdmid)
+			Sleep 1700
 		}
 
+		MsgBox "FDMIDs all have been added to Salesforce"
 	}
 	
 	; gets data from CAPS and puts it into email order template

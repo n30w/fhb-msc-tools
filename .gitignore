@@ -7,3 +7,4 @@
 *.oft
 auditing/directories
 config.ini
+python/__pycache__/parse.cpython-310.pyc

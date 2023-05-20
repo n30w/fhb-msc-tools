@@ -1,0 +1,127 @@
+{
+  "build": "h6986bd8_4",
+  "build_number": 4,
+  "channel": "https://repo.anaconda.com/pkgs/main/win-32",
+  "constrains": [],
+  "depends": [
+    "vc >=14.1,<15.0a0",
+    "vs2015_runtime >=14.16.27012,<15.0a0"
+  ],
+  "extracted_package_dir": "C:\\Users\\ralabastro\\Miniconda3\\pkgs\\libffi-3.4.2-h6986bd8_4",
+  "features": "",
+  "files": [
+    "Library/bin/ffi-7.dll",
+    "Library/bin/ffi-8.dll",
+    "Library/bin/ffi.dll",
+    "Library/include/ffi.h",
+    "Library/include/ffitarget.h",
+    "Library/lib/ffi.lib",
+    "Library/lib/libffi.dll.lib",
+    "Library/lib/libffi.lib",
+    "Library/lib/pkgconfig/libffi.pc",
+    "Library/share/libffi/libffiTargets-release.cmake",
+    "Library/share/libffi/libffiTargets.cmake",
+    ".nonadmin"
+  ],
+  "fn": "libffi-3.4.2-h6986bd8_4.conda",
+  "legacy_bz2_md5": "b07c6dd8ac1b24704b50b5bec2f60f43",
+  "license": "MIT",
+  "license_family": "MIT",
+  "link": {
+    "source": "C:\\Users\\ralabastro\\Miniconda3\\pkgs\\libffi-3.4.2-h6986bd8_4",
+    "type": 1
+  },
+  "md5": "8ba03c7ac2a4ea74647021affdfc7b14",
+  "name": "libffi",
+  "package_tarball_full_path": "C:\\Users\\ralabastro\\Miniconda3\\pkgs\\libffi-3.4.2-h6986bd8_4.conda",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "Library/bin/ffi-7.dll",
+        "path_type": "hardlink",
+        "sha256": "d70de21f73784c3858716c53549ce5ca271f997b4bdef3d94f5d9312cdc13222",
+        "sha256_in_prefix": "d70de21f73784c3858716c53549ce5ca271f997b4bdef3d94f5d9312cdc13222",
+        "size_in_bytes": 23552
+      },
+      {
+        "_path": "Library/bin/ffi-8.dll",
+        "path_type": "hardlink",
+        "sha256": "d70de21f73784c3858716c53549ce5ca271f997b4bdef3d94f5d9312cdc13222",
+        "sha256_in_prefix": "d70de21f73784c3858716c53549ce5ca271f997b4bdef3d94f5d9312cdc13222",
+        "size_in_bytes": 23552
+      },
+      {
+        "_path": "Library/bin/ffi.dll",
+        "path_type": "hardlink",
+        "sha256": "d70de21f73784c3858716c53549ce5ca271f997b4bdef3d94f5d9312cdc13222",
+        "sha256_in_prefix": "d70de21f73784c3858716c53549ce5ca271f997b4bdef3d94f5d9312cdc13222",
+        "size_in_bytes": 23552
+      },
+      {
+        "_path": "Library/include/ffi.h",
+        "path_type": "hardlink",
+        "sha256": "11f2b53e537a11cdf72ac5bdf0cbb63838c9071598e7b80eb3118197bce99bf3",
+        "sha256_in_prefix": "11f2b53e537a11cdf72ac5bdf0cbb63838c9071598e7b80eb3118197bce99bf3",
+        "size_in_bytes": 14743
+      },
+      {
+        "_path": "Library/include/ffitarget.h",
+        "path_type": "hardlink",
+        "sha256": "c83585125f3b244a1fe4551366f464734b97c11139ce2e2b5b4141183ba7ebb2",
+        "sha256_in_prefix": "c83585125f3b244a1fe4551366f464734b97c11139ce2e2b5b4141183ba7ebb2",
+        "size_in_bytes": 4741
+      },
+      {
+        "_path": "Library/lib/ffi.lib",
+        "path_type": "hardlink",
+        "sha256": "d522115643bd63b44a8080aa700d5b21ee52bf70fa88cf3ae2b646c1ab056890",
+        "sha256_in_prefix": "d522115643bd63b44a8080aa700d5b21ee52bf70fa88cf3ae2b646c1ab056890",
+        "size_in_bytes": 11904
+      },
+      {
+        "_path": "Library/lib/libffi.dll.lib",
+        "path_type": "hardlink",
+        "sha256": "d522115643bd63b44a8080aa700d5b21ee52bf70fa88cf3ae2b646c1ab056890",
+        "sha256_in_prefix": "d522115643bd63b44a8080aa700d5b21ee52bf70fa88cf3ae2b646c1ab056890",
+        "size_in_bytes": 11904
+      },
+      {
+        "_path": "Library/lib/libffi.lib",
+        "path_type": "hardlink",
+        "sha256": "d522115643bd63b44a8080aa700d5b21ee52bf70fa88cf3ae2b646c1ab056890",
+        "sha256_in_prefix": "d522115643bd63b44a8080aa700d5b21ee52bf70fa88cf3ae2b646c1ab056890",
+        "size_in_bytes": 11904
+      },
+      {
+        "_path": "Library/lib/pkgconfig/libffi.pc",
+        "path_type": "hardlink",
+        "sha256": "04884bb6893226c1c76453f70a4b778f8aab1e30d303926319d026cda94aabd0",
+        "sha256_in_prefix": "04884bb6893226c1c76453f70a4b778f8aab1e30d303926319d026cda94aabd0",
+        "size_in_bytes": 285
+      },
+      {
+        "_path": "Library/share/libffi/libffiTargets-release.cmake",
+        "path_type": "hardlink",
+        "sha256": "4c6c1190e1b052a001ad884ade077b5cc68d7dec27e8594590ff76b991b3b15f",
+        "sha256_in_prefix": "4c6c1190e1b052a001ad884ade077b5cc68d7dec27e8594590ff76b991b3b15f",
+        "size_in_bytes": 1304
+      },
+      {
+        "_path": "Library/share/libffi/libffiTargets.cmake",
+        "path_type": "hardlink",
+        "sha256": "150e790757d9504945b919161846a1117b2baf9911207b9d79736d606e7f412b",
+        "sha256_in_prefix": "150e790757d9504945b919161846a1117b2baf9911207b9d79736d606e7f412b",
+        "size_in_bytes": 3251
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "sha256": "358b496d02756f702541cd48133a89e8618261783af897d70309ed5bd52e1e44",
+  "size": 109076,
+  "subdir": "win-32",
+  "timestamp": 1654880236047,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/win-32/libffi-3.4.2-h6986bd8_4.conda",
+  "version": "3.4.2"
+}

@@ -1,14 +1,18 @@
 import typing
+import os
+
 from borb.pdf import Document
 from borb.pdf import PDF
 from borb.toolkit import SimpleTextExtraction
 
+from pypdf import PdfReader
 
 def check_for_signatures(file: str) -> bool:
 
     # read the PDF
     doc: typing.Optional[Document] = None
-    with open("input.pdf", "rb") as fh:
+    p = os.getcwd()
+    with open(file, "rb") as fh:
         doc = PDF.loads(fh)
 
     # check whether anything has been read
@@ -19,6 +23,7 @@ def check_for_signatures(file: str) -> bool:
     # check whether signatures are in the PDF
     return doc.get_document_info().has_signatures()
 
+# reads a document page. N is indexed at 1 for natural typing.
 def read_doc_page(file: str, n: int):
 
     # read the Document
@@ -30,13 +35,25 @@ def read_doc_page(file: str, n: int):
     # check whether we have read a Document
     assert doc is not None
 
-    # print the text on the first Page
-    print(l.get_text()[n])
+    # print the text on the n'th Page
+    print(l.get_text()[n-1])
 
-def main():
-    f = "python\input.pdf"
-    check_for_signatures(f)
-    read_doc_page(f, 0)
+def get_dates(file: str):
+    # read the PDF
+    doc: typing.Optional[Document] = None
+    p = os.getcwd()
+    with open(file, "rb") as fh:
+        doc = PDF.loads(fh)
+    
+    assert doc is not None
 
-if __name__ == "__main__":
-    main()
+    create_date = doc.get_document_info().get_creation_date()
+    mod_date = doc.get_document_info().get_modification_date()
+    b = create_date == mod_date
+    print(b)
+
+def pyPdfRead(file: str, n: int):
+    reader = PdfReader(file)
+    #number_of_pages = len(reader.pages)
+    page = reader.pages[n-1]
+    print(page.extract_text())

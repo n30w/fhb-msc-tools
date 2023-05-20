@@ -63,4 +63,18 @@ javascript: (function() {var inputText = prompt('Enter 15-character ID');var inp
 
 javascript: (function() {var inputText = prompt('Enter 15-character ID');var inputField = document.evaluate("//*[@name='FD_MID__c']", document.body, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;inputField.value = inputText;inputField.dispatchEvent(new Event("change"));})();
 
+// Click the Save button for field editor
 javascript: (function() {var editButton = document.evaluate("//button[@name='SaveEdit']", document.body, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;editButton.click();})();
+
+// Copy FDMID field to clipboard
+javascript: (function() {
+	const copyToClipboard = str => {
+		if (navigator && navigator.clipboard && navigator.clipboard.writeText)
+		  return navigator.clipboard.writeText(str);
+		return Promise.reject('The Clipboard API is not available.');
+	}; // Make sure this is indented correctly. When it wasn't, it caused the unexpected end of input error.
+
+	var fdmidInputField = document.evaluate("//records-record-layout-item[@field-label='FD MID']", document.body, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+
+	copyToClipboard(fdmidInputField.childNodes[0].value);
+})();

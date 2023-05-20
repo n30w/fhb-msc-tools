@@ -61,6 +61,7 @@ class SalesforceDB extends Application
 
 	UpdateFDMID(fdmid)
 	{
+		
 		altShiftB()
 		{
 			Send "{Alt down}{Shift down}b"
@@ -69,26 +70,40 @@ class SalesforceDB extends Application
 			Sleep 150
 		}
 		
+		; checks if SF account has FDMID
 		altShiftB()
+		Send "{Enter}"
+		Sleep 200
 		Send "{Enter}"
 		Sleep 200
 		
-		altShiftB()
-		Send "{Right 1}"
-		Send "{Enter}"
-		Sleep 200
+		if A_Clipboard = "null"
+		{
+			altShiftB()
+			Send "{Down 1}"
+			Sleep 200
+			Send "{Enter}"
+			Sleep 200
 
-		Clippy.Shove(fdmid)
-		Sleep 100
-		Send "^v"
-		Sleep 100
-		Send "{Enter}"
-		Sleep 400
+			
+			altShiftB()
+			Send "{Down 2}"
+			Sleep 200
+			Send "{Enter}"
+			Sleep 200
 
-		altShiftB()
-		Send "{Right 2}"
-		Send "{Enter}"
-		Sleep 200
+			Clippy.Shove(fdmid)
+			Sleep 100
+			Send "^v"
+			Sleep 100
+			Send "{Enter}"
+			Sleep 400
 
+			altShiftB()
+			Send "{Down 3}"
+			Sleep 200
+			Send "{Enter}"
+			Sleep 200
+		}
 	}
 }

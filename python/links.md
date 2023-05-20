@@ -1,5 +1,9 @@
 # Helpful links and resources
 
+## Note
+
+When you run the python script, make sure to be inside the python folder.
+
 [Make sure to set the virtual environment to the root folder](https://github.com/jorisschellekens/borb-examples#171-installation-using-pip). In this instance, its "..\". In order to initialize a venv, run in the root directory:
 
 ```python3 -m venv venv```
