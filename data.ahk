@@ -245,10 +245,51 @@ class FileHandler
 		Loop read, this.ip . path
 		{
 			attr := StrSplit(A_LoopReadLine, A_Tab)
-			merchant := {wpmid: attr[1], fdmid: attr[2], dba: ""}
+			merchant := { wpmid: attr[1], fdmid: attr[2], dba: "" }
 			merchants.Push(merchant)
 		}
 		return merchants
 	}
-		
+
+	TextToMerchantAndDate(path)
+	{
+		; remove 0's in date
+		newDateFormat(s)
+		{
+			newFormat := ""
+
+			if SubStr(s, 1, 1) = 0 ; 0 in months place
+			{
+				newFormat .= SubStr(s, 2, 2)
+			}
+			else
+			{
+				newFormat .= SubStr(s, 1, 3)
+			}
+
+			if SubStr(s, 4, 1) = 0 ; 0 in days place
+			{
+				newFormat .= SubStr(s, 5, 2)
+			}
+			else
+			{
+				newFormat .= SubStr(s, 4, 3)
+			}
+			
+			newFormat .= "20" . SubStr(s, -2)
+
+			return newFormat
+		}
+
+		merchants := Array()
+
+		Loop read, this.ip . path
+		{
+			attr := StrSplit(A_LoopReadLine, A_Tab)
+			merchant := { wpmid: attr[1], convDate: newDateFormat(attr[2]) }
+			merchants.Push(merchant)
+		}
+
+		return merchants
+	}
 }

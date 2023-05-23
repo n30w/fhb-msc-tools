@@ -3,6 +3,16 @@
 ; actions for Salesforce
 class SalesforceDB extends Application
 {
+	FullURL := ""
+
+	altShiftB()
+	{
+		Send "{Alt down}{Shift down}b"
+		Sleep 150
+		Send "{Alt up}{Shift up}"
+		Sleep 150
+	}
+	
 	months := Map(
 		"JAN", "1",
 		"FEB", "2",
@@ -24,6 +34,20 @@ class SalesforceDB extends Application
 
 	; build URL ID
 	urlID(s) => (s . this.convert15to18(s))
+
+	HasURL(l, m)
+	{
+		try
+		{
+			this.FullURL := this.AccountURL(DataHandler.Retrieve(m.wpmid).AccountID)
+		}
+		catch
+		{
+			l.Append(this.ConvertMIDToCaseID.Name, "ERROR: Unable to retrieve merchant AccountID => " . m.wpmid . " does not exist in DataStore")
+			return False
+		}
+		return True
+	}
 
 	; algorithm from: https://help.salesforce.com/s/articleView?id=000383751&type=1
 	; I rewrote it in AHK
@@ -59,19 +83,52 @@ class SalesforceDB extends Application
 		return this.months[dateObj[2]] . "/" . dateObj[1] . "/" . "20" . dateObj[3]
 	}
 
-	UpdateFDMID(fdmid)
+	UpdateConversionDate(cd)
 	{
-		
-		altShiftB()
+		Clippy.Shove("none")
+
+		t := 0
+		i := 100
+
+		; wait for page to load and check clipboard, or else it times out
+		while (A_Clipboard = "none") and (t < 15000)
 		{
-			Send "{Alt down}{Shift down}b"
-			Sleep 150
-			Send "{Alt up}{Shift up}"
-			Sleep 150
+			; wait
+			Sleep i
+			t += i
 		}
 		
+		if t > 15000
+			throw Error("Can't access webpage", -1)
+
+		if (A_Clipboard = "null") or (A_Clipboard != cd)
+			Clippy.Shove(cd)
+		
+		if A_Clipboard = cd
+			return
+
+		Sleep 300
+
+		t := 0
+
+		c := DataHandler.Sanitize(A_Clipboard)
+		while (c != "finished") and (t < 15000)
+		{
+			; wait
+			Sleep i
+			t += i
+		}
+
+		Clippy.Shove("")
+
+		if t > 15000
+			throw Error("Can't access webpage", -1)
+	}
+
+	UpdateFDMID(fdmid)
+	{
 		; checks if SF account has FDMID
-		altShiftB()
+		this.altShiftB()
 		Send "{Enter}"
 		Sleep 200
 		Send "{Enter}"
@@ -79,14 +136,14 @@ class SalesforceDB extends Application
 		
 		if A_Clipboard = "null"
 		{
-			altShiftB()
+			this.altShiftB()
 			Send "{Down 1}"
 			Sleep 200
 			Send "{Enter}"
 			Sleep 200
 
 			
-			altShiftB()
+			this.altShiftB()
 			Send "{Down 2}"
 			Sleep 200
 			Send "{Enter}"
@@ -99,7 +156,7 @@ class SalesforceDB extends Application
 			Send "{Enter}"
 			Sleep 400
 
-			altShiftB()
+			this.altShiftB()
 			Send "{Down 3}"
 			Sleep 200
 			Send "{Enter}"

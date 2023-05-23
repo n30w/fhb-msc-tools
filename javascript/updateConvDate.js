@@ -30,19 +30,39 @@ javascript: (function() {
     }
     
     let selection = "//records-record-layout-item[@field-label='FD Conversion Date']";
+    let comparison;
+    let same = false;
 
     waitForElm(selection).then((elm) => {
-        console.log('element found');
+        console.log("found label");
         /* Timeout because JS needs time to focus on the DOM */
         setTimeout(() => {
+            comparison = elm.childNodes[0].value;
             copyToClipboard(elm.childNodes[0].value);
-        }, 200);
+        }, 300);
+
+        /* This is where AutoHotkey pushes a value to the Clipboard */
+        
+        /* Compare AHK's value to the local one here */
+        setTimeout(() => {
+            navigator.clipboard
+                .readText()
+                .then((clipText) => {
+                    if (clipText === comparison) {
+                        /* JS replaces Clipboard so AutoHotkey can read it */
+                        copyToClipboard("same");
+                        same = true;
+                        if (same)
+                            return;
+                    }
+                });
+        }, 600);
     });
 
     selection = "//*[@title='Edit FD Conversion Date']";
     
     waitForElm(selection).then((elm) => {
-        console.log('element found');
+        console.log("clicking edit button");
         /* Timeout because JS needs time to focus on the DOM */
         setTimeout(() => {
             elm.click();
@@ -52,8 +72,7 @@ javascript: (function() {
     selection = "//*[@name='FD_Conversion_Date__c']";
 
     waitForElm(selection).then((elm) => {
-        console.log('element found');
-        copyToClipboard("11/23/2022");
+        console.log("editing text");
         navigator.clipboard
             .readText()
             .then((clipText) => {
@@ -65,11 +84,17 @@ javascript: (function() {
     selection = "//button[@name='SaveEdit']";
 
     waitForElm(selection).then((elm) => {
-        console.log('element found');
+        console.log("clicking save button");
         /* Timeout because JS needs time to focus on the DOM */
         setTimeout(() => {
             elm.click();
+            copyToClipboard("finished");
         }, 200);
     });
+
+    setTimeout(() => {
+        elm.click();
+        copyToClipboard("");
+    }, 200);
 
 })();

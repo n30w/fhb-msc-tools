@@ -25,7 +25,7 @@ Sub FilterColumn()
     ' Prompt the user for the filter value
     FilterValue = InputBox("Enter the value to filter:")
     
-    FeeCodes = Array("164", "170", "800", "804", "10P", "10J", "10A", "10D", "018", "18E", "0AZ", "10Q", "10K", "10B", "10E")
+    FeeCodes = FeeCodes = Array("164", "170", "800", "804", "10P", "10J", "10A", "10D", "018", "18E", "0AZ", "10Q", "10K", "10B", "10E", "001", "005", "015")
     
     ' Check if the user entered a value
     If FilterValue <> "" Then

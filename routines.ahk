@@ -8,15 +8,16 @@
 class Routines
 {
 	data := DataHandler()
-	
+
 	__New(logger, fileOps)
 	{
 		this.logger := logger
 		this.fileOps := fileOps
+		this.clock := Timer()
 		this.sharedDrive := this.fileOps.Config("Paths", "SharedDrive")
 	}
-	
-	; attaches something to clippy and pastes it
+
+	; Attaches something to clippy and pastes it.
 	AttachAndPaste(s)
 	{
 		this.data.cb.Attach(s)
@@ -24,7 +25,7 @@ class Routines
 		this.data.cb.Paste()
 	}
 	
-	; searches CAPS for a single MID
+	; Searches CAPS for a single MID.
 	GetCAPSAccount(win, caps)
 	{
 		mid := this.data.cb.Update()
@@ -40,7 +41,7 @@ class Routines
 		return this
 	}
 	
-	; pulls up account view on Salesforce
+	; Pulls up account view on Salesforce.
 	GetSalesforceAccount(win, edge, sf)
 	{
 		mid := this.data.cb.Update()
@@ -69,7 +70,7 @@ class Routines
 		return this
 	}
 
-	; pulls up account view on Salesforce
+	; Pulls up account view on Salesforce.
 	GetSalesforceConversionCase(win, edge, sf)
 	{
 		mid := ""
@@ -102,6 +103,7 @@ class Routines
 		return this
 	}
 
+	; From a text file, add FDMID to Salesforce if it doesn't exist.
 	AddFDMIDToSalesforce(win, edge, sf)
 	{
 		this.data.cb.Clean()
@@ -139,6 +141,55 @@ class Routines
 		}
 
 		MsgBox "FDMIDs all have been added to Salesforce"
+	}
+
+	; From a text file, update the every FDMID date on Salesforce.
+	AddConversionDateToSalesforce(win, edge, sf)
+	{
+		this.data.cb.Clean()
+
+		this.clock.StartTimer()
+		
+		merchants := this.fileOps.TextToMerchantAndDate("updatesfconversiondate.txt")
+		
+		win.FocusWindow(edge)
+		if not edge.TabTitleContains("Salesforce")
+			edge.NewTab()
+		
+		for m in merchants
+		{
+			urlExists := sf.HasURL(this.logger, m)
+			if urlExists
+			{
+				edge.FocusURLBar()
+				Clippy.Shove(sf.FullURL)
+				Send "^v"
+				Sleep 100
+				Send "{Enter}"
+				Sleep 1000
+				Send "{Alt down}{Shift down}b"
+				Sleep 150
+				Send "{Alt up}{Shift up}"
+				Sleep 150		
+				Send "{Right 1}"
+				Sleep 100
+				Send "{Enter}"
+				Sleep 200
+				this.data.cb.Clean()
+				sf.UpdateConversionDate(DataHandler.Sanitize(m.convDate))
+				Sleep 1700
+			}
+			else
+			{
+				continue
+			}
+		}
+
+		this.clock.StopTimer()
+
+		this.logger.Timer(merchants.length . " merchant FDMIDs checked and/or updated.", this.clock)
+
+		MsgBox "Conversion dates updated"
 	}
 	
 	; gets data from CAPS and puts it into email order template
@@ -256,7 +307,7 @@ class Routines
 
 		this.logger.append(this.ExportPDFSToAudit,"Starting export...")
 		
-		StartTime := A_TickCount
+		this.clock.StartTimer()
 		
 		FolderPath := "auditing\directories\{1}\2023.FDMS conversion\"
 		
@@ -340,16 +391,9 @@ class Routines
 		excel.Ref := tempRef
 		
 		Send "{Esc 1}"
-		FinishTime := A_TickCount
-		TotalTime := FinishTime - StartTime
 		
-		m := Round(TotalTime/60000)
-		r := Mod(TotalTime, 60000)
-		s := Round(r/1000)
-		r := Mod(r, 1000)
-		mi := r
-		
-		this.logger.Append(, "===== " . data.length . " PDFs exported in " . m . "m " . s . "." . mi . "s" . " =====")
+		this.clock.StopTimer()
+		this.logger.Timer(data.length . " merchants exported.", this.clock)
 		
 		MsgBox "PDF Export Complete"
 	}
@@ -580,4 +624,3 @@ class Routines
 		return dba
 	}
 }
-
