@@ -10,7 +10,7 @@ class SalesforceDB extends Application
 		Send "{Alt down}{Shift down}b"
 		Sleep 150
 		Send "{Alt up}{Shift up}"
-		Sleep 150
+		Sleep 200
 	}
 	
 	months := Map(
@@ -35,15 +35,18 @@ class SalesforceDB extends Application
 	; build URL ID
 	urlID(s) => (s . this.convert15to18(s))
 
-	HasURL(l, m)
+	HasURL(l, m, d?)
 	{
 		try
 		{
-			this.FullURL := this.AccountURL(DataHandler.Retrieve(m.wpmid).AccountID)
+			if IsSet(d)
+				this.FullURL := this.AccountURL(d.Retrieve(m.wpmid).AccountID)
+			else
+				this.FullURL := this.AccountURL(DataHandler.Retrieve(m.wpmid).AccountID)
 		}
 		catch
 		{
-			l.Append(this.ConvertMIDToCaseID.Name, "ERROR: Unable to retrieve merchant AccountID => " . m.wpmid . " does not exist in DataStore")
+			l.Append(this.HasURL.Name, "ERROR: Unable to retrieve merchant AccountID => " . m.wpmid . " does not exist in DataStore")
 			return False
 		}
 		return True
@@ -85,44 +88,121 @@ class SalesforceDB extends Application
 
 	UpdateConversionDate(cd)
 	{
-		Clippy.Shove("none")
+		accessConvDate()
+		{
+			Send "{Right 1}"
+			Sleep 200
+			Send "{Enter}"
+			Sleep 200
+		}
+
+		this.altShiftB()
+		accessConvDate()
+		Sleep 400
+		Send "{Enter}"
+		Sleep 100
 
 		t := 0
-		i := 100
+	 	i := 10
 
-		; wait for page to load and check clipboard, or else it times out
-		while (A_Clipboard = "none") and (t < 15000)
-		{
-			; wait
-			Sleep i
-			t += i
-		}
-		
+	 	; wait for page to load and check clipboard, or else it times out
+	 	while (A_Clipboard = "none") and (t < 15000)
+	 	{
+	 		; wait
+	 		Sleep i
+	 		t += i
+	 	}
+
 		if t > 15000
-			throw Error("Can't access webpage", -1)
+	 		throw Error("Can't access webpage", -1)
+		
+		if (A_Clipboard != cd) or (A_Clipboard = "null")
+		{	
+			; ClickEdit
+			this.altShiftB()
+			accessConvDate()
+			Send "{Down 1}"
+			Sleep 400
+			Send "{Enter}"
+			Sleep 1400
 
-		if (A_Clipboard = "null") or (A_Clipboard != cd)
 			Clippy.Shove(cd)
-		
-		if A_Clipboard = cd
-			return
 
-		Sleep 300
+			; ChangeDate
+			this.altShiftB()
+			accessConvDate()
+			Send "{Down 2}"
+			Sleep 400
+			Send "{Enter}"
+			Sleep 1100
 
-		t := 0
+			; SaveEdit
+			this.altShiftB()
+			Send "{Right 3}"
+			Sleep 400
+			Send "{Enter}"
+			Sleep 1000
+		}
+	}
 
-		c := DataHandler.Sanitize(A_Clipboard)
-		while (c != "finished") and (t < 15000)
+	UpdateClosedDate(cd)
+	{
+		accessClosedDate()
 		{
-			; wait
-			Sleep i
-			t += i
+			Send "{Right 2}"
+			Sleep 200
+			Send "{Enter}"
+			Sleep 200
 		}
 
-		Clippy.Shove("")
+		this.altShiftB()
+		accessClosedDate()
+		Sleep 400
+		Send "{Enter}"
+		Sleep 100
+
+		t := 0
+	 	i := 10
+
+	 	; wait for page to load and check clipboard, or else it times out
+	 	while (A_Clipboard = "none") and (t < 15000)
+	 	{
+	 		; wait
+	 		Sleep i
+	 		t += i
+	 	}
 
 		if t > 15000
-			throw Error("Can't access webpage", -1)
+	 		throw Error("Can't access webpage", -1)
+		
+		if (A_Clipboard != cd) or (A_Clipboard = "null")
+		{	
+			; ClickEdit
+			this.altShiftB()
+			accessClosedDate()
+			Send "{Down 1}"
+			Sleep 400
+			Send "{Enter}"
+			Sleep 1400
+
+			Clippy.Shove(cd)
+
+			; ChangeDate
+			this.altShiftB()
+			accessClosedDate()
+			Send "{Down 2}"
+			Sleep 400
+			Send "{Enter}"
+			Sleep 1100
+
+			; SaveEdit
+			this.altShiftB()
+			Send "{Right 3}"
+			Sleep 400
+			Send "{Enter}"
+			Sleep 1000
+		}
+
 	}
 
 	UpdateFDMID(fdmid)

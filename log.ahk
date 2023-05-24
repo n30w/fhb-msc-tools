@@ -4,6 +4,8 @@ class Logger
 {
 	logFilePath := ""
 	
+	static GetFileDateTime() => FormatTime(,"yyyyMMdd-hhmmsstt")
+
 	GetFileDateTime() => FormatTime(,"yyyyMMdd-hhmmsstt")
 	GetEntryDateTime() => FormatTime(,"hh:mm:ss tt")
 	
@@ -33,6 +35,7 @@ class Logger
 	Timer(msg, t)
 	{
 		this.Append(, "===== " . msg . " [" . t.ElapsedTime() . "]" . " =====")
+		t.Reset()
 	}
 }
 
@@ -44,6 +47,13 @@ class Timer
 	StartTimer() => this.startTime := A_TickCount
 
 	StopTimer() => this.stopTime := A_TickCount
+
+	ElapsedInMilliseconds()
+	{
+		total := this.stopTime - this.startTime
+		this.Reset()
+		return total
+	}
 
 	ElapsedTime()
 	{
@@ -57,10 +67,19 @@ class Timer
 		r := Mod(r, 1000)
 		mi := r
 		
-		this.stopTime := 0
-		this.startTime := 0
+		this.Reset()
 
 		return  ( (h != 0 ? h . "hrs " : "") . m . "min " . s . "." . mi . "sec" )
 	}
 
+	Reset()
+	{
+		this.startTime := 0
+		this.stopTime := 0
+	}
+}
+
+class Statistics
+{
+	
 }

@@ -6,7 +6,7 @@ class DataHandler
 	; map of (string : object)
 	static DataStore := Map()
 	
-	; create the store and keep it in memory
+	; create the peristent store and keep it in memory
 	static BuildStore(path)
 	{
 		col := Array()
@@ -64,6 +64,64 @@ class DataHandler
 			v := ""
 		}
 	}
+
+	; Code below is for instance specific datastores, and may be used when a routine requires ephemeral input k/v storage
+
+	__New(path?)
+	{
+		if IsSet(path)
+			this.BuildStore(path)
+	}
+	
+	; map of (string : object)
+	LocalDataStore := Map()
+	
+	; create a store and keep it in memory
+	BuildStore(path)
+	{
+		col := Array()
+		Loop read, path
+		{
+			i := A_Index
+			line := A_LoopReadLine
+			Loop parse, line, "CSV"
+			{
+				k := A_LoopField
+				v := {}
+				if i = 1 ; first line of CSV is column names, so add columns names to col for future ref
+				{
+					col.Push(k)
+				}
+				else
+				{
+					Loop parse, line, "CSV"
+					{
+						f := A_LoopField
+						if k = f
+							continue
+						else
+							v.%col[A_Index]% := f
+					}
+					this.Store(k, v)
+				}
+			}
+		}
+	}
+	
+	; stores a key and value into LocalDataStore
+	Store(k ,v) => this.LocalDataStore.Set(k ,v)
+	
+	; retrieves value given key from LocalDataStore
+	Retrieve(k) => this.LocalDataStore.Get(k)
+	
+	; updates if k exists in LocalDataStore
+	Update(k, v) => (this.LocalDataStore.Has(k) ? this.LocalDataStore[k] := v : "")
+	
+	; deletes a k from LocalDataStore
+	Erase(k) => this.LocalDataStore.Delete(k)
+	
+	; wipes all data in LocalDataStore
+	ClearDataStore() => this.LocalDataStore.Clear()
 	
 	cb := Clippy()
 	
@@ -166,6 +224,9 @@ class Field
 
 class FileHandler
 {
+
+	Config(s, k) => IniRead("config.ini", s, k)
+
 	__New()
 	{
 		this.ip := this.Config("Paths", "InputPath")
@@ -213,7 +274,14 @@ class FileHandler
 		}
 	}
 	
-	Config(s, k) => IniRead("config.ini", s, k)
+	; Adds a new line to a specified file. Appends `r`n to the end of the line.
+	static AddLineToFile(msg, f)
+	{
+		FileAppend(msg . "`r`n", f)
+	}
+
+	; Creates a new file title/path with a timestamp.
+	static NewTimestampedFile(title, path?, ext?) => Format("{1}{2}-{3}.{4}", ( IsSet(path) ? path : this.Config("Paths", "OutputPath") ), title, Logger.GetFileDateTime(), ( IsSet(ext) ? ext : "txt") )
 
 	; Captures order from a file
 	ReadOrder(path)
@@ -251,7 +319,7 @@ class FileHandler
 		return merchants
 	}
 
-	TextToMerchantAndDate(path)
+	TextToMerchantAndDateArray(path)
 	{
 		; remove 0's in date
 		newDateFormat(s)
@@ -286,10 +354,20 @@ class FileHandler
 		Loop read, this.ip . path
 		{
 			attr := StrSplit(A_LoopReadLine, A_Tab)
-			merchant := { wpmid: attr[1], convDate: newDateFormat(attr[2]) }
+			merchant := { wpmid: attr[1], newDate: newDateFormat(attr[2]) }
 			merchants.Push(merchant)
 		}
 
 		return merchants
+	}
+
+	TextToMerchantAccountIDArray(path)
+	{
+		merchants := Array()
+
+		Loop read, this.ip . path
+		{
+			attr := StrSplit(A_LoopReadLine, A_Tab)
+		}
 	}
 }

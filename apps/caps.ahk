@@ -37,7 +37,7 @@ class CapsDB extends Application
 		Send mid
 		Sleep 400
 		Send "{Enter}"
-		Sleep 500
+		Sleep 1000
 
 		capsErrorMsg := "none"
 

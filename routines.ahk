@@ -143,22 +143,30 @@ class Routines
 		MsgBox "FDMIDs all have been added to Salesforce"
 	}
 
-	; From a text file, update the every FDMID date on Salesforce.
+	; From a text file, update every FDMID conversion date on Salesforce.
 	AddConversionDateToSalesforce(win, edge, sf)
 	{
+		name := this.AddConversionDateToSalesforce.Name
+		
 		this.data.cb.Clean()
+
+		this.logger.Append(name, "Started")
 
 		this.clock.StartTimer()
 		
-		merchants := this.fileOps.TextToMerchantAndDate("updatesfconversiondate.txt")
+		merchants := this.fileOps.TextToMerchantAndDateArray("updatesfdate.txt")
 		
 		win.FocusWindow(edge)
+
 		if not edge.TabTitleContains("Salesforce")
 			edge.NewTab()
 		
 		for m in merchants
 		{
+			this.data.cb.Clean()
+			
 			urlExists := sf.HasURL(this.logger, m)
+			
 			if urlExists
 			{
 				edge.FocusURLBar()
@@ -166,18 +174,15 @@ class Routines
 				Send "^v"
 				Sleep 100
 				Send "{Enter}"
-				Sleep 1000
-				Send "{Alt down}{Shift down}b"
-				Sleep 150
-				Send "{Alt up}{Shift up}"
-				Sleep 150		
-				Send "{Right 1}"
-				Sleep 100
-				Send "{Enter}"
-				Sleep 200
-				this.data.cb.Clean()
-				sf.UpdateConversionDate(DataHandler.Sanitize(m.convDate))
-				Sleep 1700
+				Sleep 300
+
+				Clippy.Shove("none")
+
+				sf.UpdateConversionDate(m.newDate)
+				
+				this.logger.Append(name, m.wpmid . " conversion date updated")
+
+				Sleep 2000
 			}
 			else
 			{
@@ -187,9 +192,68 @@ class Routines
 
 		this.clock.StopTimer()
 
-		this.logger.Timer(merchants.length . " merchant FDMIDs checked and/or updated.", this.clock)
+		this.logger.Timer(merchants.length . " merchant account conversion dates checked and/or updated.", this.clock)
 
 		MsgBox "Conversion dates updated"
+	}
+
+	; From a text file, update every account's closed date on Salesforce.
+	AddClosedDateToSalesforce(win, edge, sf)
+	{
+		this.data.cb.Clean()
+
+		name := this.AddClosedDateToSalesforce.Name
+
+		outputFile := FileHandler.NewTimestampedFile(name)
+		
+		localDS := DataHandler("resources\accountIDs.csv")
+		
+		this.logger.Append(name, "Started")
+		
+		this.clock.StartTimer()
+		
+		merchants := this.fileOps.TextToMerchantAndDateArray("addcloseddatetosf.txt")
+		
+		win.FocusWindow(edge)
+
+		if not edge.TabTitleContains("Salesforce")
+			edge.NewTab()
+		
+		for m in merchants
+		{
+			this.data.cb.Clean()
+			
+			urlExists := sf.HasURL(this.logger, m, localDS)
+			
+			if urlExists
+			{
+				edge.FocusURLBar()
+				Clippy.Shove(sf.FullURL)
+				Send "^v"
+				Sleep 100
+				Send "{Enter}"
+				Sleep 300
+
+				Clippy.Shove("none")
+
+				sf.UpdateClosedDate(m.newDate)
+				
+				this.logger.Append(name, m.wpmid . " updated")
+
+				Sleep 2000
+			}
+			else
+			{
+				FileHandler.AddLineToFile(m.wpmid . " does not exist on Salesforce", outputFile)
+				continue
+			}
+		}
+
+		this.clock.StopTimer()
+
+		this.logger.Timer(merchants.length . " merchant account closed dates checked and/or updated.", this.clock)
+
+		MsgBox "Closed dates updated"
 	}
 	
 	; gets data from CAPS and puts it into email order template
