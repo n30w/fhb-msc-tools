@@ -225,6 +225,8 @@ class Field
 class FileHandler
 {
 
+	static Config(s, k) => IniRead("config.ini", s, k)
+
 	Config(s, k) => IniRead("config.ini", s, k)
 
 	__New()
@@ -281,7 +283,7 @@ class FileHandler
 	}
 
 	; Creates a new file title/path with a timestamp.
-	static NewTimestampedFile(title, path?, ext?) => Format("{1}{2}-{3}.{4}", ( IsSet(path) ? path : this.Config("Paths", "OutputPath") ), title, Logger.GetFileDateTime(), ( IsSet(ext) ? ext : "txt") )
+	static NewTimestampedFile(title, path?, ext?) => Format("{1}{2}-{3}.{4}", ( IsSet(path) ? path : FileHandler.Config("Paths", "OutputPath") ), title, Logger.GetFileDateTime(), ( IsSet(ext) ? ext : "txt") )
 
 	; Captures order from a file
 	ReadOrder(path)

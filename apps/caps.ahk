@@ -37,21 +37,11 @@ class CapsDB extends Application
 		Send mid
 		Sleep 400
 		Send "{Enter}"
-		Sleep 1000
+		Sleep 1700
 
-		capsErrorMsg := "none"
+		windowCount := WinGetCount(this.Ref)
 
-		try
-		{
-			capsErrorMsg := WinGetText(this.Ref, "Unhandled exception has occurred")
-		}
-		catch
-		{
-			return
-		}
-
-		; retry this method if CAPS errors
-		if capsErrorMsg = "Unhandled exception has occurred"
+		if windowCount > 1 ; if window count is > 1, that means there is an error that popped up
 		{
 			this.navigateErrorBox()
 			Sleep 1000

@@ -9,7 +9,7 @@
 CoordMode "Mouse", "Window"
 
 fo := FileHandler()
-lg := Logger()
+lg := Logger(fo.Config("Paths", "SystemLogs"))
 ps := Powershell("Powershell",,,)
 
 LogStopReason(ExitReason, ExitCode)
@@ -41,7 +41,7 @@ DataHandler.BuildStore("resources\data.csv")
 ; initialize all applications
 {
 	caps := CapsDB("CAPS",, "CAPS.appref-ms", "CAPS")
-	excel := MSExcel("ExcelDB",, "data.xlsm", "data - Excel")
+	excel := MSExcel("ExcelDB", fo.Config("Paths", "InputPath"), "feecodes.xlsm", "feecodes - Excel")
 	ol := OutlookMail("Outlook", "C:\Program Files\Microsoft Office\root\Office16", "OUTLOOK.exe", "ahk_exe OUTLOOK.exe")
 	aa := AdobeAcrobat("Adobe Acrobat",,, "ahk_exe AcroRd32.exe")
 	npp := NotepadPP("Notepad++",, "notepad++.lnk", "ahk_exe notepad++.exe")

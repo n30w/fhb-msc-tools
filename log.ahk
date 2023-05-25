@@ -57,13 +57,13 @@ class Timer
 
 	ElapsedTime()
 	{
-		tt := this.stopTime - this.startTime
+		et := this.ElapsedInMilliseconds()
 		
-		h := Round(tt/3600000)
-		r := Mod(tt, 3600000)
-		m := Round(r/60000)
+		h := et//3600000
+		r := Mod(et, 3600000)
+		m := r//60000
 		r := Mod(r, 60000)
-		s := Round(r/1000)
+		s := r//1000
 		r := Mod(r, 1000)
 		mi := r
 		
@@ -76,6 +76,29 @@ class Timer
 	{
 		this.startTime := 0
 		this.stopTime := 0
+	}
+}
+
+class StatusBar
+{
+	xPos := 0
+	yPos := 0
+	
+	__New(x := 2020, y := 945)
+	{
+		CoordMode "Tooltip", "Screen"
+		this.xPos := x
+		this.yPos := y
+	}
+
+	Reset()
+	{
+		ToolTip
+	}
+
+	Show(msg)
+	{
+		ToolTip msg, this.xPos, this.yPos
 	}
 }
 

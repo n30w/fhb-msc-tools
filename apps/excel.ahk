@@ -39,6 +39,7 @@ class MSExcel extends Application
 	
 	DefaultPDFSaveMacro()
 	{
+		Sleep 400
 		Send "^+d"
 		Sleep 300
 		

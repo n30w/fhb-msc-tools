@@ -8,6 +8,7 @@
 class Routines
 {
 	data := DataHandler()
+	currentRoutine := ""
 
 	__New(logger, fileOps)
 	{
@@ -200,19 +201,18 @@ class Routines
 	; From a text file, update every account's closed date on Salesforce.
 	AddClosedDateToSalesforce(win, edge, sf)
 	{
-		this.data.cb.Clean()
+		stopwatch := Timer()
+		statBar := StatusBar()
 
 		name := this.AddClosedDateToSalesforce.Name
-
-		outputFile := FileHandler.NewTimestampedFile(name)
+		outputFile := FileHandler.NewTimestampedFile(name, FileHandler.Config("Paths", "RoutineLogs"))
 		
 		localDS := DataHandler("resources\accountIDs.csv")
+		merchants := this.fileOps.TextToMerchantAndDateArray("addcloseddatetosf.txt")
 		
 		this.logger.Append(name, "Started")
 		
-		this.clock.StartTimer()
-		
-		merchants := this.fileOps.TextToMerchantAndDateArray("addcloseddatetosf.txt")
+		stopwatch.StartTimer()
 		
 		win.FocusWindow(edge)
 
@@ -222,7 +222,9 @@ class Routines
 		for m in merchants
 		{
 			this.data.cb.Clean()
-			
+
+			statBar.Show(A_Index . "/" . merchants.length . " completed")
+
 			urlExists := sf.HasURL(this.logger, m, localDS)
 			
 			if urlExists
@@ -249,9 +251,11 @@ class Routines
 			}
 		}
 
-		this.clock.StopTimer()
+		stopwatch.StopTimer()
 
-		this.logger.Timer(merchants.length . " merchant account closed dates checked and/or updated.", this.clock)
+		this.logger.Timer(merchants.length . " merchant account closed dates checked and/or updated.", stopwatch)
+
+		statBar.Reset()
 
 		MsgBox "Closed dates updated"
 	}
@@ -366,47 +370,69 @@ class Routines
 
 	ExportPDFSToAudit(win, caps, excel)
 	{
-		tempRef := excel.Ref ; store current ref in temp var
-		excel.Ref := "fdms fee code list - Excel"
+		if YesNoBox("Is CAPS print to PDF setup to the correct folder?") = "No"
+			return
 
-		this.logger.append(this.ExportPDFSToAudit,"Starting export...")
+		statBar := StatusBar()
+
+		accountNames := DataHandler("resources\accountNames.csv")
+		outFile := Format(this.fileOps.Config("Paths", "RoutineLogs") . "ExportPDFSToAudit-{1}.txt", this.logger.getFileDateTime())
+		LoadingZone := this.fileOps.Config("Paths", "OutputPath") . "auditing\"
+		merchants := this.fileOps.TextToMerchantArray("midtopdf.txt")
+
+		this.logger.append(this.ExportPDFSToAudit,"Starting export...")		
 		
-		this.clock.StartTimer()
+		stopwatch := Timer()
+		stopwatch.StartTimer()
 		
-		FolderPath := "auditing\directories\{1}\2023.FDMS conversion\"
-		
-		data := this.fileOps.TextToMerchantArray("midtopdf.txt")
-		
-		for merchant in data ; get corresponding DBA for each WP MID, create folder if it doesn't exist.
+		for merchant in merchants ; get corresponding DBA for each WP MID, create folder if it doesn't exist.
 		{
-			merchant.dba := DataHandler.Retrieve(merchant.wpmid).AccountName
-			
-			MerchantDir := Format(FolderPath, merchant.dba)
+			try merchant.dba := DataHandler.Retrieve(merchant.wpmid).AccountName
+			catch
+				merchant.dba := accountNames.Retrieve(merchant.wpmid).AccountName
+			statdba := merchant.dba
+			updateStatusBar(state)
+			{
+				msg := "
+				(
+				{1}/{2}: {3}
+				{4}
+				)"
+				
+				statBar.Show(Format(msg, A_Index, merchants.length, statdba, state))
+			}
+
+			updateStatusBar("Processing")
+
+			MerchantDir := Format(LoadingZone . "directories\{1}\2023.FDMS conversion\", merchant.dba)
 			
 			CAPSPDFName := "CAPS fees - " . merchant.wpmid
 			FDMIDPDFName := "FDMID code listing - " . merchant.wpmid
 			
-			currentCAPSPDFPath := ""
-			currentFDMSPDFPath := ""
+			currentCAPSPDFPath := LoadingZone . CAPSPDFName . ".pdf"
+			currentFDMSPDFPath := LoadingZone . FDMIDPDFName . ".pdf"
 
 			; if there are no matching DBAs, make a new folder
 			if not DirExist(MerchantDir)
+			{
+				updateStatusBar("Creating Merchant Directory")
 				DirCreate MerchantDir
+			}
 			
 			; if CAPS fee doesn't exist, access CAPS and create pdf
 			if not FileExist(MerchantDir . CAPSPDFName . ".pdf")
 			{
+				updateStatusBar("Exporting CAPS PDF")
+				; MsgBox MerchantDir . CAPSPDFName . ".pdf" . " does not exist"
 				Clippy.Shove(merchant.wpmid)
 				win.FocusWindow(caps)
 				this.GetCAPSAccount(win, caps)
 				caps.SaveCAPSFeesPDF(CAPSPDFName)
 				
-				currentCAPSPDFPath := "auditing\" . CAPSPDFName . ".pdf"
-				
 				try FileMove currentCAPSPDFPath, MerchantDir, 1
 				catch as e
 				{
-					this.logger.Append(caps, Format("{1} {2} {3} - {4}", merchant.dba, merchant.wpmid, merchant.fdmid, e.What))
+					this.logger.Append(caps, Format("{1} {2} {3} - ERROR: {4}", merchant.dba, merchant.wpmid, merchant.fdmid, e.What))
 					FileDelete currentCAPSPDFPath
 				}
 				Sleep 1000
@@ -417,47 +443,49 @@ class Routines
 			; generate PDF from Account Fee code listing document
 			if not FileExist(MerchantDir . FDMIDPDFName . ".pdf")
 			{
-				win.FocusWindow(excel)
-				excel.FilterColumnMacro(merchant.fdmid)
-				
-				; "`r`n" is a value returned from the Excel Macro
-				if A_Clipboard = "`r`n" ; current FDMID is not in the list
+				noteName := merchant.wpmid . " " . merchant.fdmid . " has no FDMID listed"
+				if not FileExist(MerchantDir . noteName . ".txt")
 				{
-					FileAppend(merchant.WPMID . " " . merchant.FDMID . " has no FDMID listed", MerchantDir . merchant.WPMID . " " . merchant.FDMID . " has no FDMID listed" . ".txt")
-					this.logger.Append(excel, merchant.dba . " " . merchant.fdmid . " has no listings in Account Fee Code Listings")
-					Clippy.Shove("")
-					Sleep 300
-				}
-				else
-				{
-					Clippy.Shove(FDMIDPDFName)
-					excel.DefaultPDFSaveMacro()
-					currentFDMSPDFPath := A_WorkingDir . "\auditing\" . FDMIDPDFName . ".pdf"
-					try FileMove currentFDMSPDFPath, MerchantDir, 1
-					catch as e
+					win.FocusWindow(excel)
+					excel.FilterColumnMacro(merchant.fdmid)
+					
+					; "`r`n" is a value returned from the Excel Macro
+					if A_Clipboard = "`r`n" ; current FDMID is not in the list
 					{
-						this.logger.Append(caps, Format("{1} {2} {3} - ERROR: {4}", merchant.dba, merchant.wpmid, merchant.fdmid, e.What))
-						FileDelete currentFDMSPDFPath
+						updateStatusBar("Current merchant has no fee codes... making note of that")
+						FileAppend(noteName, MerchantDir . "\" . noteName . ".txt")
+						this.logger.Append(excel, merchant.dba . " " . merchant.fdmid . " has no listings in Account Fee Code Listings")
+						Clippy.Shove("")
+						Sleep 300
 					}
-					Sleep 200
+					else
+					{
+						updateStatusBar("Exporting FDMID Fee Codes PDF")
+						Clippy.Shove(FDMIDPDFName)
+						excel.DefaultPDFSaveMacro()
+						try FileMove currentFDMSPDFPath, MerchantDir, 1
+						catch as e
+						{
+							this.logger.Append(caps, Format("{1} {2} {3} - ERROR: {4}", merchant.dba, merchant.wpmid, merchant.fdmid, e.What))
+							FileDelete currentFDMSPDFPath
+						}
+						Sleep 1200
+					}
 				}
 			}
 			
 			this.logger.Append(this.ExportPDFSToAudit.Name, "Export of " .  merchant.dba . " " . merchant.wpmid . " " . merchant.fdmid . " completed")
-			
-			FileAppend(merchant.wpmid . A_Tab . merchant.fdmid . "`n", "auditing\completed.txt")
-			
-			Clippy.Shove("")	
-			
-			Sleep 1000
+			FileAppend(merchant.wpmid . "`t" . merchant.fdmid . "`r`n", outFile)
+
+			Clippy.Shove("")
 		}
 		
-		excel.Ref := tempRef
-		
 		Send "{Esc 1}"
-		
-		this.clock.StopTimer()
-		this.logger.Timer(data.length . " merchants exported.", this.clock)
+
+		statBar.Reset()
+
+		stopwatch.StopTimer()
+		this.logger.Timer(merchants.length . " merchants exported.", stopwatch)
 		
 		MsgBox "PDF Export Complete"
 	}

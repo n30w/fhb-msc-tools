@@ -33,13 +33,14 @@ Sub DefaultPDFSave()
     On Error Resume Next
     dataObj.GetFromClipboard
     text = dataObj.GetText
+    
     On Error GoTo 0
 
     ' Set the relative default save location for the PDF
     Dim defaultPath As String
-    defaultPath = ThisWorkbook.Path
-
+    defaultPath = ThisWorkbook.Path & "\..\output\auditing\" & text ' Make sure the text you're copying isn't from excel, since excel has \r\n appended
+    
     ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, _
-        FileName:=defaultPath & "\" & text, Quality:=xlQualityMinimum, _
+        FileName:=defaultPath, Quality:=xlQualityMinimum, _
         IncludeDocProperties:=False, IgnorePrintAreas:=False
 End Sub
