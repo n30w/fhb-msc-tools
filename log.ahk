@@ -11,14 +11,17 @@ class Logger
 	
 	__New(filePath?)
     {
-		if not IsSet(filePath)
+		if IsSet(filePath)
+		{
+			this.logFilePath := filePath . this.GetFileDateTime() . " log.txt"
+			if InStr(filePath, "logs\system")
+				this.Append(,"System boot, logged in as " . StrUpper(A_Username))
+		}
+		else
 		{
 			DirCreate "logs"
-			filePath := "logs\"
+			this.logFilePath := "logs\"
 		}
-		
-		this.logFilePath := filePath . this.GetFileDateTime() . " log.txt"
-		this.Append(,"System boot, logged in as " . StrUpper(A_Username))
     }
 	
     Append(app?, msg := "")

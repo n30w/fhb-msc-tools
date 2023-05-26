@@ -36,12 +36,12 @@ LogStopReason(ExitReason, ExitCode)
 }
 
 ; build the DataStore for RAM access
-DataHandler.BuildStore("resources\data.csv")
+DataHandler.BuildStore("resources\data\data.csv")
 
 ; initialize all applications
 {
 	caps := CapsDB("CAPS",, "CAPS.appref-ms", "CAPS")
-	excel := MSExcel("ExcelDB", fo.Config("Paths", "InputPath"), "feecodes.xlsm", "feecodes - Excel")
+	excel := MSExcel("ExcelDB", fo.Config("Paths", "IOInputPath"), "feecodes.xlsm", "feecodes - Excel")
 	ol := OutlookMail("Outlook", "C:\Program Files\Microsoft Office\root\Office16", "OUTLOOK.exe", "ahk_exe OUTLOOK.exe")
 	aa := AdobeAcrobat("Adobe Acrobat",,, "ahk_exe AcroRd32.exe")
 	npp := NotepadPP("Notepad++",, "notepad++.lnk", "ahk_exe notepad++.exe")

@@ -108,7 +108,7 @@ class Routines
 	AddFDMIDToSalesforce(win, edge, sf)
 	{
 		this.data.cb.Clean()
-		merchants := this.fileOps.TextToMerchantArray("addfdmidtosf.txt")
+		merchants := FileHandler.TextToMerchantArray("addfdmidtosf.txt")
 		au := ""
 		fdmid := ""
 		
@@ -147,7 +147,7 @@ class Routines
 	; From a text file, update every FDMID conversion date on Salesforce.
 	AddConversionDateToSalesforce(win, edge, sf)
 	{
-		name := this.AddConversionDateToSalesforce.Name
+		name := this.A_ThisFunc.Name
 		
 		this.data.cb.Clean()
 
@@ -155,7 +155,7 @@ class Routines
 
 		this.clock.StartTimer()
 		
-		merchants := this.fileOps.TextToMerchantAndDateArray("updatesfdate.txt")
+		merchants := FileHandler.TextToMerchantAndDateArray("updatesfdate.txt")
 		
 		win.FocusWindow(edge)
 
@@ -201,16 +201,25 @@ class Routines
 	; From a text file, update every account's closed date on Salesforce.
 	AddClosedDateToSalesforce(win, edge, sf)
 	{
+		funcName := this.getFuncName(A_ThisFunc)
+
 		stopwatch := Timer()
 		statBar := StatusBar()
+		
+		localDSPath := FileHandler.Config("Resources", "AccountIDs")
+		inPath := FileHandler.Config("Paths", "TempCSV")
+		outPath := FileHandler.Config("Resources", funcName)
+		routineLogfile := Logger(FileHandler.Config("Paths", "RoutineLogs") . funcName . "\")
+		
+		csv := FileHandler(inPath, outPath, funcName)
 
-		name := this.AddClosedDateToSalesforce.Name
-		outputFile := FileHandler.NewTimestampedFile(name, FileHandler.Config("Paths", "RoutineLogs"))
+		csv.RemoveTemp(inPath)
+
+		merchants := FileHandler.TextToMerchantAndDateArray("addcloseddatetosf.txt")
+		localDS := DataHandler(localDSPath)
+		parseMap := DataHandler(outPath)
 		
-		localDS := DataHandler("resources\accountIDs.csv")
-		merchants := this.fileOps.TextToMerchantAndDateArray("addcloseddatetosf.txt")
-		
-		this.logger.Append(name, "Started")
+		this.logger.Append(funcName, "Started")
 		
 		stopwatch.StartTimer()
 		
@@ -223,7 +232,12 @@ class Routines
 		{
 			this.data.cb.Clean()
 
-			statBar.Show(A_Index . "/" . merchants.length . " completed")
+			statBar.Show(A_Index . "/" . merchants.length . " in progress...")
+
+			sfUpdated := sf.SalesforceUpdated(this.logger, m, parseMap)
+
+			if sfUpdated
+				continue
 
 			urlExists := sf.HasURL(this.logger, m, localDS)
 			
@@ -240,15 +254,17 @@ class Routines
 
 				sf.UpdateClosedDate(m.newDate)
 				
-				this.logger.Append(name, m.wpmid . " updated")
+				this.logger.Append(funcName, m.wpmid . " updated")
 
 				Sleep 2000
 			}
 			else
 			{
-				FileHandler.AddLineToFile(m.wpmid . " does not exist on Salesforce", outputFile)
+				routineLogfile.Append(, m.wpmid . " does not exist on Salesforce")
 				continue
 			}
+
+			localDS.Update(m.wpmid, "1") ; set its value to parsed
 		}
 
 		stopwatch.StopTimer()
@@ -256,6 +272,8 @@ class Routines
 		this.logger.Timer(merchants.length . " merchant account closed dates checked and/or updated.", stopwatch)
 
 		statBar.Reset()
+
+		csv.StringToCSV(parseMap)
 
 		MsgBox "Closed dates updated"
 	}
@@ -378,9 +396,11 @@ class Routines
 		accountNames := DataHandler("resources\accountNames.csv")
 		outFile := Format(this.fileOps.Config("Paths", "RoutineLogs") . "ExportPDFSToAudit-{1}.txt", this.logger.getFileDateTime())
 		LoadingZone := this.fileOps.Config("Paths", "OutputPath") . "auditing\"
-		merchants := this.fileOps.TextToMerchantArray("midtopdf.txt")
+		merchants := FileHandler.TextToMerchantArray("midtopdf.txt")
 
-		this.logger.append(this.ExportPDFSToAudit,"Starting export...")		
+		funcName := this.getFuncName(A_ThisFunc)
+
+		this.logger.append(funcName, "Starting export...")		
 		
 		stopwatch := Timer()
 		stopwatch.StartTimer()
@@ -474,7 +494,7 @@ class Routines
 				}
 			}
 			
-			this.logger.Append(this.ExportPDFSToAudit.Name, "Export of " .  merchant.dba . " " . merchant.wpmid . " " . merchant.fdmid . " completed")
+			this.logger.Append(funcName, "Export of " .  merchant.dba . " " . merchant.wpmid . " " . merchant.fdmid . " completed")
 			FileAppend(merchant.wpmid . "`t" . merchant.fdmid . "`r`n", outFile)
 
 			Clippy.Shove("")
@@ -647,7 +667,7 @@ class Routines
 		this.logger.Append(this.ConvertMIDToCaseID.Name, "Started!")
 		outFile := Format(this.fileOps.Config("Paths", "OutputPath") . "GetMIDCaseID-{1}.txt", this.logger.getFileDateTime())
 		ci := ""
-		merchants := this.fileOps.TextToMerchantArray("midtocaseid.txt")
+		merchants := FileHandler.TextToMerchantArray("midtocaseid.txt")
 
 		for m in merchants 
 		{
@@ -714,5 +734,11 @@ class Routines
 			Sleep 200
 		}
 		return dba
+	}
+
+	getFuncName(str)
+	{
+		arr := StrSplit(str, ".")
+		return arr[arr.length]
 	}
 }

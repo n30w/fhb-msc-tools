@@ -71,6 +71,7 @@ class DataHandler
 	{
 		if IsSet(path)
 			this.BuildStore(path)
+		cols := Array()
 	}
 	
 	; map of (string : object)
@@ -79,7 +80,6 @@ class DataHandler
 	; create a store and keep it in memory
 	BuildStore(path)
 	{
-		col := Array()
 		Loop read, path
 		{
 			i := A_Index
@@ -90,7 +90,7 @@ class DataHandler
 				v := {}
 				if i = 1 ; first line of CSV is column names, so add columns names to col for future ref
 				{
-					col.Push(k)
+					this.cols.Push(k)
 				}
 				else
 				{
@@ -100,7 +100,7 @@ class DataHandler
 						if k = f
 							continue
 						else
-							v.%col[A_Index]% := f
+							v.%this.cols[A_Index]% := f
 					}
 					this.Store(k, v)
 				}
@@ -224,16 +224,11 @@ class Field
 
 class FileHandler
 {
-
+	; Access .ini config file
 	static Config(s, k) => IniRead("config.ini", s, k)
 
-	Config(s, k) => IniRead("config.ini", s, k)
-
-	__New()
-	{
-		this.ip := this.Config("Paths", "InputPath")
-		this.op := this.Config("Paths", "OutputPath")
-	}
+	static IOInputPath := FileHandler.Config("Paths", "IOInputPath")
+	static IOOutputPath := FileHandler.Config("Paths", "IOOutputPath")
 
 	;  Recursively compares every file to a target file name in a directory; if match, returns path of a target file.
 	static RetrievePath(dir, name, ext)
@@ -250,6 +245,12 @@ class FileHandler
 			}
 		}
 		return "none"
+	}
+
+	static FileNameFromPath(path)
+	{
+		splitPath := StrSplit(path, "\")
+		return splitPath[splitPath.length]
 	}
 
 	; Reads all the words in a file, returns the first match of a pattern
@@ -282,46 +283,25 @@ class FileHandler
 		FileAppend(msg . "`r`n", f)
 	}
 
+	; Reads a CSV file line-by-line. If it encounters a word or char sequence equal to target, it returns its index on the line.
+	static ReadCSVForColMatch(fileName, target)
+	{
+		Loop read, fileName
+		{
+			Loop parse, A_LoopReadLine, "CSV"
+			{
+				if A_LoopField = target
+				{
+					return A_LoopReadLine
+				}
+			}
+		}
+	}
+
 	; Creates a new file title/path with a timestamp.
 	static NewTimestampedFile(title, path?, ext?) => Format("{1}{2}-{3}.{4}", ( IsSet(path) ? path : FileHandler.Config("Paths", "OutputPath") ), title, Logger.GetFileDateTime(), ( IsSet(ext) ? ext : "txt") )
 
-	; Captures order from a file
-	ReadOrder(path)
-	{
-		div := False ; checks for divider ---
-		order := ""
-
-		; Only copy the order
-		Loop read, path
-		{
-			line := A_LoopReadLine 
-			if (line = "---") and (div = True)
-				break
-			if (line = "---")
-			{
-				div := True
-				continue
-			}
-			if div
-				order .= line . "`n"
-		}
-
-		return order
-	}
-
-	TextToMerchantArray(path)
-	{
-		merchants := Array()
-		Loop read, this.ip . path
-		{
-			attr := StrSplit(A_LoopReadLine, A_Tab)
-			merchant := { wpmid: attr[1], fdmid: attr[2], dba: "" }
-			merchants.Push(merchant)
-		}
-		return merchants
-	}
-
-	TextToMerchantAndDateArray(path)
+	static TextToMerchantAndDateArray(path)
 	{
 		; remove 0's in date
 		newDateFormat(s)
@@ -353,7 +333,7 @@ class FileHandler
 
 		merchants := Array()
 
-		Loop read, this.ip . path
+		Loop read, FileHandler.IOInputPath . path
 		{
 			attr := StrSplit(A_LoopReadLine, A_Tab)
 			merchant := { wpmid: attr[1], newDate: newDateFormat(attr[2]) }
@@ -363,13 +343,107 @@ class FileHandler
 		return merchants
 	}
 
-	TextToMerchantAccountIDArray(path)
+	static TextToMerchantArray(path)
+	{
+		merchants := Array()
+		Loop read, FileHandler.IOInputPath . path
+		{
+			attr := StrSplit(A_LoopReadLine, A_Tab)
+			merchant := { wpmid: attr[1], fdmid: attr[2], dba: "" }
+			merchants.Push(merchant)
+		}
+		return merchants
+	}
+
+	static TextToMerchantAccountIDArray(path)
 	{
 		merchants := Array()
 
-		Loop read, this.ip . path
+		Loop read, FileHandler.IOInputPath . path
 		{
 			attr := StrSplit(A_LoopReadLine, A_Tab)
 		}
+	}
+
+	__New(inPath?, outPath?, callerName?)
+	{
+		getScheme(path)
+		{
+			file := FileOpen(path, "r")
+			return file.ReadLine()
+		}
+		
+		if IsSet(inPath)
+			this.inPath := inPath
+		if IsSet(outPath)
+		{
+			this.outPath := outPath
+			this.scheme := getScheme(outPath)
+		}
+		if IsSet(callerName)
+			this.callerName := callerName
+	}
+	
+	Config(s, k) => IniRead("config.ini", s, k)
+
+	; Turns the DataStore back into a comma separated string.
+	FromStoreToFileString(ds)
+	{
+		fileString := this.scheme . "`r`n"
+		
+		for k in ds
+		{
+			if k = "1" or k = "0"
+				continue
+			fileString .= k
+			for col in ds.cols
+			{
+				fileString .= "," . ds.Retrieve(k).%ds.cols[A_Index]%
+			}
+		}
+		
+		fileString .= "`r`n"
+
+		return fileString		
+	}
+
+	StringToCSV(ds)
+	{
+		fileString := this.FromStoreToFileString(ds)
+		inPathFileName := FileHandler.FileNameFromPath(this.inPath)
+
+		FileAppend fileString, this.inPath
+
+		try FileMove this.inPath, this.inPath . this.callerName . ".csv"
+		try FileMove this.inPath, this.outPath, 1
+	}
+
+	; Captures order from a file
+	ReadOrder(path)
+	{
+		div := False ; checks for divider ---
+		order := ""
+
+		; Only copy the order
+		Loop read, path
+		{
+			line := A_LoopReadLine 
+			if (line = "---") and (div = True)
+				break
+			if (line = "---")
+			{
+				div := True
+				continue
+			}
+			if div
+				order .= line . "`n"
+		}
+
+		return order
+	}
+
+	RemoveTemp(path)
+	{
+		Try FileRecycle this.inPath
 	}
 }
