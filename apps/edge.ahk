@@ -16,6 +16,15 @@ class MSEdge extends Application
 		Sleep 50
 	}
 
+	PasteURLAndGo(url)
+	{
+		Clippy.Shove(url)
+		Send "^v"
+		Sleep 100
+		Send "{Enter}"
+		Sleep 300
+	}
+
 	GetTabTitle() => WinGetTitle("A")
 
 	; Returns true if there is a word in the title of a tab

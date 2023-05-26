@@ -206,17 +206,14 @@ class Routines
 		stopwatch := Timer()
 		statBar := StatusBar()
 		
-		localDSPath := FileHandler.Config("Resources", "AccountIDs")
 		inPath := FileHandler.Config("Paths", "TempCSV")
 		outPath := FileHandler.Config("Resources", funcName)
 		routineLogfile := Logger(FileHandler.Config("Paths", "RoutineLogs") . funcName . "\")
 		
 		csv := FileHandler(inPath, outPath, funcName)
 
-		csv.RemoveTemp(inPath)
-
 		merchants := FileHandler.TextToMerchantAndDateArray("addcloseddatetosf.txt")
-		localDS := DataHandler(localDSPath)
+		accountIDs := DataHandler(FileHandler.Config("Resources", "AccountIDs"))
 		parseMap := DataHandler(outPath)
 		
 		this.logger.Append(funcName, "Started")
@@ -232,27 +229,25 @@ class Routines
 		{
 			this.data.cb.Clean()
 
-			statBar.Show(A_Index . "/" . merchants.length . " in progress...")
+			statBar.Show(A_Index . "/" . merchants.length . " in progress...`r`n" . "Total: " . parseMap.Retrieve(m.wpmid).OrderIndex . "/" . parseMap.DsLength)
 
-			sfUpdated := sf.SalesforceUpdated(this.logger, m, parseMap)
+			sfUpdated := parseMap.IsParsed(m.wpmid)
 
 			if sfUpdated
 				continue
 
-			urlExists := sf.HasURL(this.logger, m, localDS)
+			urlExists := sf.HasURL(this.logger, m, accountIDs)
 			
 			if urlExists
 			{
 				edge.FocusURLBar()
-				Clippy.Shove(sf.FullURL)
-				Send "^v"
-				Sleep 100
-				Send "{Enter}"
-				Sleep 300
+				edge.PasteURLAndGo(sf.FullURL)
 
 				Clippy.Shove("none")
 
 				sf.UpdateClosedDate(m.newDate)
+				orderIndex := parseMap.Retrieve(m.wpmid).OrderIndex
+				parseMap.SetParsed(orderIndex)
 				
 				this.logger.Append(funcName, m.wpmid . " updated")
 
@@ -262,9 +257,7 @@ class Routines
 			{
 				routineLogfile.Append(, m.wpmid . " does not exist on Salesforce")
 				continue
-			}
-
-			localDS.Update(m.wpmid, "1") ; set its value to parsed
+			}		
 		}
 
 		stopwatch.StopTimer()
@@ -273,7 +266,7 @@ class Routines
 
 		statBar.Reset()
 
-		csv.StringToCSV(parseMap)
+		csv.StringToCSV(parseMap.DataStoreToFileString(csv.Scheme))
 
 		MsgBox "Closed dates updated"
 	}

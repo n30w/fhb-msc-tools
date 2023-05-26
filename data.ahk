@@ -71,11 +71,14 @@ class DataHandler
 	{
 		if IsSet(path)
 			this.BuildStore(path)
-		cols := Array()
 	}
 	
 	; map of (string : object)
 	LocalDataStore := Map()
+
+	DsLength := 0
+
+	Cols := Array()
 	
 	; create a store and keep it in memory
 	BuildStore(path)
@@ -90,7 +93,7 @@ class DataHandler
 				v := {}
 				if i = 1 ; first line of CSV is column names, so add columns names to col for future ref
 				{
-					this.cols.Push(k)
+					this.Cols.Push(k)
 				}
 				else
 				{
@@ -100,10 +103,11 @@ class DataHandler
 						if k = f
 							continue
 						else
-							v.%this.cols[A_Index]% := f
+							v.%this.Cols[A_Index]% := f
 					}
 					this.Store(k, v)
 				}
+				this.DsLength += 1
 			}
 		}
 	}
@@ -120,10 +124,57 @@ class DataHandler
 	; deletes a k from LocalDataStore
 	Erase(k) => this.LocalDataStore.Delete(k)
 	
+	; Returns true or false if a value is parsed or not.
+	IsParsed(k)
+	{
+		if this.Retrieve(k).Parsed = "TRUE"
+			return true
+		return false
+	}
+
+	; Sets a value in DataStore to Parsed, meaning it has been processed. By default, calling without v sets it to True.
+	SetParsed(k, v := true)
+	{
+		this.Retrieve(k).Parsed := ( v ? "TRUE" : "FALSE" )
+	}
+
 	; wipes all data in LocalDataStore
 	ClearDataStore() => this.LocalDataStore.Clear()
 	
 	cb := Clippy()
+
+	; Turns the DataStore back into a comma separated string.
+	DataStoreToFileString(scheme)
+	{
+		fileString := scheme . "`r`n"
+		fileLen := this.DsLength/this.Cols.length ; divide by the amount of columns there are, since each column is assigned a value
+		loop (fileLen)
+		{
+			lineString := ""
+			lineNumber := A_Index
+			if lineNumber != 1
+			{
+				orderIdx := lineNumber - 1
+				for col in this.Cols
+				{
+					colIdx := A_Index
+					v := ""
+					if A_Index != this.Cols.length and colIdx != 1
+						v := this.Retrieve(String(orderIdx)).%this.Cols[colIdx]% . ","
+					else if A_Index = this.Cols.length
+						v := orderIdx . (lineNumber = fileLen ? "" : "`r`n" )
+					else
+						v := this.Retrieve(String(orderIdx)).WPMID . ","
+					lineString .= v
+				}
+				if lineNumber = (1186)
+					MsgBox lineString
+			}
+			fileString .= lineString
+		}
+
+		return fileString
+	}
 	
 	; given a variadic parameter of fields, go through them and set their values
 	CopyFields(fields*)
@@ -247,6 +298,7 @@ class FileHandler
 		return "none"
 	}
 
+	; Extracts a file's name from a path.
 	static FileNameFromPath(path)
 	{
 		splitPath := StrSplit(path, "\")
@@ -365,6 +417,8 @@ class FileHandler
 		}
 	}
 
+	tmpPath := FileHandler.Config("Paths", "TempFiles")
+
 	__New(inPath?, outPath?, callerName?)
 	{
 		getScheme(path)
@@ -372,13 +426,12 @@ class FileHandler
 			file := FileOpen(path, "r")
 			return file.ReadLine()
 		}
-		
 		if IsSet(inPath)
 			this.inPath := inPath
 		if IsSet(outPath)
 		{
 			this.outPath := outPath
-			this.scheme := getScheme(outPath)
+			this.Scheme := getScheme(outPath)
 		}
 		if IsSet(callerName)
 			this.callerName := callerName
@@ -386,36 +439,15 @@ class FileHandler
 	
 	Config(s, k) => IniRead("config.ini", s, k)
 
-	; Turns the DataStore back into a comma separated string.
-	FromStoreToFileString(ds)
+	StringToCSV(str)
 	{
-		fileString := this.scheme . "`r`n"
-		
-		for k in ds
-		{
-			if k = "1" or k = "0"
-				continue
-			fileString .= k
-			for col in ds.cols
-			{
-				fileString .= "," . ds.Retrieve(k).%ds.cols[A_Index]%
-			}
-		}
-		
-		fileString .= "`r`n"
+		newFileName := this.tmpPath . this.callerName . ".csv"
+		try FileRecycle newFileName
+		FileAppend str, this.inPath
 
-		return fileString		
-	}
-
-	StringToCSV(ds)
-	{
-		fileString := this.FromStoreToFileString(ds)
-		inPathFileName := FileHandler.FileNameFromPath(this.inPath)
-
-		FileAppend fileString, this.inPath
-
-		try FileMove this.inPath, this.inPath . this.callerName . ".csv"
+		try FileMove this.inPath, newFileName
 		try FileMove this.inPath, this.outPath, 1
+		try FileRecycle newFileName
 	}
 
 	; Captures order from a file

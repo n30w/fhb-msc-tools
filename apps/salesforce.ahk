@@ -35,14 +35,14 @@ class SalesforceDB extends Application
 	; build URL ID
 	urlID(s) => (s . this.convert15to18(s))
 
-	SalesforceUpdated(l, m, d)
+	Parsed(l, m, d)
 	{
-		if d.Retrieve(m.wpmid).Parsed = "0"
+		if d.Retrieve(m.wpmid).Parsed = "TRUE"
 		{
 			l.Append(A_ThisFunc, "Already parsed => " . m.wpmid)
-			return False
+			return True
 		}
-		return True
+		return False
 	}
 
 	HasURL(l, m, d?)
