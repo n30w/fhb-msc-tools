@@ -167,16 +167,13 @@ class DataHandler
 						v := this.Retrieve(String(orderIdx)).WPMID . ","
 					lineString .= v
 				}
-				if lineNumber = (1186)
-					MsgBox lineString
 			}
 			fileString .= lineString
 		}
-
 		return fileString
 	}
 	
-	; given a variadic parameter of fields, go through them and set their values
+	; Given a variadic parameter of fields, go through them and set their values.
 	CopyFields(fields*)
 	{
 		this.cb.Clean()
@@ -442,12 +439,12 @@ class FileHandler
 	StringToCSV(str)
 	{
 		newFileName := this.tmpPath . this.callerName . ".csv"
-		try FileRecycle newFileName
+		;try FileRecycle newFileName
 		FileAppend str, this.inPath
 
 		try FileMove this.inPath, newFileName
 		try FileMove this.inPath, this.outPath, 1
-		try FileRecycle newFileName
+		;try FileRecycle newFileName
 	}
 
 	; Captures order from a file

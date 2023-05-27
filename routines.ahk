@@ -206,6 +206,7 @@ class Routines
 		stopwatch := Timer()
 		statBar := StatusBar()
 		
+		str := ""
 		inPath := FileHandler.Config("Paths", "TempCSV")
 		outPath := FileHandler.Config("Resources", funcName)
 		routineLogfile := Logger(FileHandler.Config("Paths", "RoutineLogs") . funcName . "\")
@@ -229,7 +230,7 @@ class Routines
 		{
 			this.data.cb.Clean()
 
-			statBar.Show(A_Index . "/" . merchants.length . " in progress...`r`n" . "Total: " . parseMap.Retrieve(m.wpmid).OrderIndex . "/" . parseMap.DsLength)
+			statBar.Show("Merchant: " . A_Index . "/" . merchants.length . "`r`n" . "Total: " . parseMap.Retrieve(m.wpmid).OrderIndex . "/" . parseMap.DsLength//parsemap.Cols.length)
 
 			sfUpdated := parseMap.IsParsed(m.wpmid)
 
@@ -257,7 +258,9 @@ class Routines
 			{
 				routineLogfile.Append(, m.wpmid . " does not exist on Salesforce")
 				continue
-			}		
+			}
+			str := parseMap.DataStoreToFileString(csv.Scheme)
+			csv.StringToCSV(str)
 		}
 
 		stopwatch.StopTimer()
@@ -265,8 +268,6 @@ class Routines
 		this.logger.Timer(merchants.length . " merchant account closed dates checked and/or updated.", stopwatch)
 
 		statBar.Reset()
-
-		csv.StringToCSV(parseMap.DataStoreToFileString(csv.Scheme))
 
 		MsgBox "Closed dates updated"
 	}
@@ -734,4 +735,9 @@ class Routines
 		arr := StrSplit(str, ".")
 		return arr[arr.length]
 	}
+}
+
+class Routine
+{
+	running := False
 }
