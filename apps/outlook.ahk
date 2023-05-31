@@ -39,6 +39,20 @@ class OutlookMail extends Application
             Send t
     }
 
+    SendEmail()
+    {
+        Sleep 1000
+        Send "{Esc}"
+        Sleep 500
+        Send "{Ctrl down}"
+		Sleep 200
+		Send "{Enter}"
+        Sleep 200
+		Send "{Ctrl up}"
+        Sleep 200
+        return this
+    }
+
     SendOrderMacro()
     {
         Send "y"

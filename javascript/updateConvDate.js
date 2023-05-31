@@ -154,17 +154,26 @@ javascript: (function() {
 })();
 
 javascript: (function() {
-    let selection = document.evaluate("//input[@name='FD_Conversion_Date__c']", document.body, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+    let selection = document.evaluate("//input[@name='Merchant_Closed_Date__c']", document.body, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
     console.log("editing text");
     setTimeout(() => {
         navigator.clipboard
             .readText()
             .then((clipText) => {
-                selection.value = clipText;
+                selection.value = "";
                 selection.dispatchEvent(new Event("change"));
             });
     }, 700);
-    
+    let newSelection = document.evaluate("//input[@name='FD_Conversion_Date__c']", document.body, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+    console.log("editing text");
+    setTimeout(() => {
+        navigator.clipboard
+            .readText()
+            .then((clipText) => {
+                newSelection.value = clipText;
+                newSelection.dispatchEvent(new Event("change"));
+            });
+    }, 1000);
 })();
 
 javascript: (function() {

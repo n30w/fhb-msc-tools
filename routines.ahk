@@ -7,15 +7,32 @@
 
 class Routines
 {
-	data := DataHandler()
-	currentRoutine := ""
-
 	__New(logger, fileOps)
 	{
 		this.logger := logger
 		this.fileOps := fileOps
 		this.clock := Timer()
+		this.data := DataHandler()
+		this.RoutineList := Array()
 		this.sharedDrive := this.fileOps.Config("Paths", "SharedDrive")
+	}
+
+	; Load routines into RoutineList
+	Load(routines*)
+	{
+		for routine in routines
+		{
+			this.RoutineList.Push(routine)
+		}
+	}
+
+	StopAll()
+	{
+		for routine in this.RoutineList
+		{
+			if routine.IsActive()
+				routine.Butcher()
+		}
 	}
 
 	; Attaches something to clippy and pastes it.
@@ -147,15 +164,25 @@ class Routines
 	; From a text file, update every FDMID conversion date on Salesforce.
 	AddConversionDateToSalesforce(win, edge, sf)
 	{
-		name := this.A_ThisFunc.Name
-		
-		this.data.cb.Clean()
+		funcName := this.getFuncName(A_ThisFunc)
 
-		this.logger.Append(name, "Started")
-
-		this.clock.StartTimer()
+		stopwatch := Timer()
+		statBar := StatusBar()
 		
-		merchants := FileHandler.TextToMerchantAndDateArray("updatesfdate.txt")
+		str := ""
+		inPath := FileHandler.Config("Paths", "TempCSV")
+		outPath := FileHandler.Config("Resources", funcName)
+		routineLogfile := Logger(FileHandler.Config("Paths", "RoutineLogs") . funcName . "\")
+		
+		csv := FileHandler(inPath, outPath, funcName)
+
+		merchants := FileHandler.TextToMerchantAndDateArray("addconvdatetosf.txt")
+		accountIDs := DataHandler(FileHandler.Config("Resources", "AccountIDs"))
+		parseMap := DataHandler(outPath)
+		
+		this.logger.Append(funcName, "Started")
+		
+		stopwatch.StartTimer()
 		
 		win.FocusWindow(edge)
 
@@ -165,35 +192,47 @@ class Routines
 		for m in merchants
 		{
 			this.data.cb.Clean()
-			
-			urlExists := sf.HasURL(this.logger, m)
+
+			statBar.Show("Merchant: " . A_Index . "/" . merchants.length . "`r`n" . "Total: " . parseMap.Retrieve(m.wpmid).OrderIndex . "/" . parseMap.DsLength//parsemap.Cols.length)
+
+			sfUpdated := parseMap.IsParsed(m.wpmid)
+
+			if sfUpdated
+				continue
+
+			urlExists := sf.HasURL(this.logger, m, accountIDs)
 			
 			if urlExists
 			{
 				edge.FocusURLBar()
-				Clippy.Shove(sf.FullURL)
-				Send "^v"
-				Sleep 100
-				Send "{Enter}"
-				Sleep 300
+				edge.PasteURLAndGo(sf.FullURL)
 
 				Clippy.Shove("none")
 
 				sf.UpdateConversionDate(m.newDate)
+				orderIndex := parseMap.Retrieve(m.wpmid).OrderIndex
+				parseMap.SetParsed(orderIndex)
 				
-				this.logger.Append(name, m.wpmid . " conversion date updated")
+				this.logger.Append(funcName, m.wpmid . " updated")
 
 				Sleep 2000
 			}
 			else
 			{
+				routineLogfile.Append(, m.wpmid . " does not exist on Salesforce")
 				continue
 			}
+			str := parseMap.DataStoreToFileString(csv.Scheme)
+			csv.StringToCSV(str)
 		}
 
-		this.clock.StopTimer()
+		stopwatch.StopTimer()
 
-		this.logger.Timer(merchants.length . " merchant account conversion dates checked and/or updated.", this.clock)
+		this.logger.Timer(merchants.length . " merchant account closed dates checked and/or updated.", stopwatch)
+
+		statBar.Reset()
+
+		this.PrepareAndSendNotificationEmail(win, ol, funcName, stopwatch.ElapsedTime())
 
 		MsgBox "Conversion dates updated"
 	}
@@ -269,7 +308,92 @@ class Routines
 
 		statBar.Reset()
 
+		this.PrepareAndSendNotificationEmail(win, ol, funcName, stopwatch.ElapsedTime())
+
 		MsgBox "Closed dates updated"
+	}
+
+	; From a text file, update every account's closed date on Salesforce.
+	AddOpenDateToSalesforce(win, edge, sf)
+	{
+		funcName := this.getFuncName(A_ThisFunc)
+
+		stopwatch := Timer()
+		statBar := StatusBar()
+		
+		str := ""
+		idx := 0
+		realTotal := 0
+
+		inPath := FileHandler.Config("Paths", "TempCSV")
+		outPath := FileHandler.Config("Resources", funcName)
+		routineLogfile := Logger(FileHandler.Config("Paths", "RoutineLogs") . funcName . "\")
+		
+		csv := FileHandler(inPath, outPath, funcName)
+
+		merchants := FileHandler.TextToMerchantAndDateArrayRetainYear("addopendatetosf.txt")
+		accountIDs := DataHandler(FileHandler.Config("Resources", "AccountIDs"))
+		parseMap := DataHandler(outPath)
+		
+		this.logger.Append(funcName, "Started")
+		
+		stopwatch.StartTimer()
+		
+		win.FocusWindow(edge)
+
+		if not edge.TabTitleContains("Salesforce")
+			edge.NewTab()
+		
+		for m in merchants
+		{
+			this.data.cb.Clean()
+			
+			idx := parseMap.Retrieve(m.wpmid).OrderIndex
+			realTotal := parseMap.DsLength//parsemap.Cols.length
+
+			statBar.Show("Merchant: " . A_Index . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal)
+
+			sfUpdated := parseMap.IsParsed(m.wpmid)
+
+			if sfUpdated
+				continue
+
+			urlExists := sf.HasURL(this.logger, m, accountIDs)
+			
+			if urlExists
+			{
+				edge.FocusURLBar()
+				edge.PasteURLAndGo(sf.FullURL)
+
+				Clippy.Shove("none")
+
+				sf.UpdateOpenDate(m.newDate)
+				orderIndex := parseMap.Retrieve(m.wpmid).OrderIndex
+				parseMap.SetParsed(orderIndex)
+				
+				this.logger.Append(funcName, m.wpmid . " updated")
+
+				Sleep 2000
+			}
+			else
+			{
+				routineLogfile.Append(, m.wpmid . " does not exist on Salesforce")
+				continue
+			}
+			str := parseMap.DataStoreToFileString(csv.Scheme)
+			csv.StringToCSV(str)
+		}
+
+		stopwatch.StopTimer()
+
+		this.logger.Timer(merchants.length . " merchant account closed dates checked and/or updated.", stopwatch)
+
+		statBar.Reset()
+
+		body := "Total converted: " . idx . " of " . realTotal . "`r`nTime Elapsed: " .  stopwatch.ElapsedTime()
+		this.PrepareAndSendNotificationEmail(win, ol, funcName, stopwatch.ElapsedTime(), body)
+
+		MsgBox "Open dates updated"
 	}
 	
 	; gets data from CAPS and puts it into email order template
@@ -596,6 +720,20 @@ class Routines
 		Send order
 	}
 
+	PrepareAndSendNotificationEmail(win, ol, routineName, elapsedTime, customText?)
+	{
+		subject := "[ROUTINE COMPLETE] " . routineName .  " - " . Logger.GetFileDateTime()
+		body := routineName . " finished in " . elapsedTime
+
+		if IsSet(customText)
+			body := customText
+
+		win.FocusWindow(ol)
+		ol.CreateNewEmail().To(FileHandler.Config("Fields", "MyEmail")).CC().Subject(subject).Body(body)
+		Sleep 1000
+		ol.SendEmail()
+	}
+
 	OpenAuditFolder(win, caps, edge, sf, ps, wpmid?)
 	{
 		mid := ""
@@ -737,7 +875,51 @@ class Routines
 	}
 }
 
-class Routine
+class RoutineObject
 {
-	running := False
+	__New()
+	{
+		this.active := False
+		this.paused := False
+		this.uptime := Timer()
+		this.process := Timer()
+	}
+
+	IsActive() => this.active
+
+	IsPaused() => this.paused
+
+	Do()
+	{
+		this.Begin()
+		; ...
+	}
+
+	Begin()
+	{
+		this.active := True
+		this.paused := False
+		this.uptime.StartTimer()
+		this.process.StartTimer()
+	}
+
+	Hold()
+	{
+		this.paused := True
+		this.process.StopTimer()
+	}
+
+	Resume()
+	{
+		this.paused := False
+		this.process.StartTimer()
+	}
+
+	Butcher()
+	{
+		this.active := False
+		this.paused := False
+		this.process.StopTimer()
+		this.uptime.StopTimer()
+	}
 }

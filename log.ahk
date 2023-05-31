@@ -44,23 +44,34 @@ class Logger
 
 class Timer
 {
-	startTime := 0
-	stopTime := 0
-
-	StartTimer() => this.startTime := A_TickCount
-
-	StopTimer() => this.stopTime := A_TickCount
-
-	ElapsedInMilliseconds()
+	__New()
 	{
-		total := this.stopTime - this.startTime
-		this.Reset()
-		return total
+		this.startTime := 0
+		this.stopTime := 0
+		this.total := 0 ; total time if doing multiple stop/start
 	}
 
-	ElapsedTime()
+	addToTotalTime() => this.total += this.stopTime - this.startTime
+
+	; Starts timer.
+	StartTimer() => this.startTime := A_TickCount
+
+	; Stops and updates timer's total time ran.
+	StopTimer()
 	{
-		et := this.ElapsedInMilliseconds()
+		this.stopTime := A_TickCount
+		this.addToTotalTime()
+		this.Reset()
+	}
+
+	; Creates and returns a formatted hour, minute, second, millisecond string
+	ElapsedTime(t?)
+	{
+		et := 0
+		if IsSet(t)
+			et := t
+		else
+			et := this.total
 		
 		h := et//3600000
 		r := Mod(et, 3600000)
@@ -80,6 +91,8 @@ class Timer
 		this.startTime := 0
 		this.stopTime := 0
 	}
+
+	TotalTime() => this.total
 }
 
 class StatusBar

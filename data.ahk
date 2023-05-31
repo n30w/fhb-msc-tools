@@ -127,7 +127,16 @@ class DataHandler
 	; Returns true or false if a value is parsed or not.
 	IsParsed(k)
 	{
-		if this.Retrieve(k).Parsed = "TRUE"
+		p := False
+		try 
+		{
+			p := this.Retrieve(k).Parsed
+		}
+		catch
+		{
+			p := "FALSE"
+		}
+		if p = "TRUE"
 			return true
 		return false
 	}
@@ -392,6 +401,48 @@ class FileHandler
 		return merchants
 	}
 
+	static TextToMerchantAndDateArrayRetainYear(path)
+	{
+		; remove 0's in date
+		newDateFormat(s)
+		{
+			newFormat := ""
+
+			if SubStr(s, 1, 1) = 0 ; 0 in months place
+			{
+				newFormat .= SubStr(s, 2, 2)
+			}
+			else
+			{
+				newFormat .= SubStr(s, 1, 3)
+			}
+
+			if SubStr(s, 4, 1) = 0 ; 0 in days place
+			{
+				newFormat .= SubStr(s, 5, 2)
+			}
+			else
+			{
+				newFormat .= SubStr(s, 4, 3)
+			}
+			
+			newFormat .= SubStr(s, -4)
+
+			return newFormat
+		}
+
+		merchants := Array()
+
+		Loop read, FileHandler.IOInputPath . path
+		{
+			attr := StrSplit(A_LoopReadLine, A_Tab)
+			merchant := { wpmid: attr[1], newDate: newDateFormat(attr[2]) }
+			merchants.Push(merchant)
+		}
+
+		return merchants
+	}
+
 	static TextToMerchantArray(path)
 	{
 		merchants := Array()
@@ -418,17 +469,18 @@ class FileHandler
 
 	__New(inPath?, outPath?, callerName?)
 	{
-		getScheme(path)
-		{
-			file := FileOpen(path, "r")
-			return file.ReadLine()
-		}
+		; getScheme(path)
+		; {
+		; 	file := FileOpen(path, "r")
+		; 	return file.ReadLine()
+		; }
 		if IsSet(inPath)
 			this.inPath := inPath
 		if IsSet(outPath)
 		{
 			this.outPath := outPath
-			this.Scheme := getScheme(outPath)
+			; this.Scheme := getScheme(outPath)
+			this.Scheme := FileHandler.Config("Defaults", "Scheme")
 		}
 		if IsSet(callerName)
 			this.callerName := callerName

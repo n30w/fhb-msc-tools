@@ -138,7 +138,7 @@ class SalesforceDB extends Application
 
 			; SaveEdit
 			this.altShiftB()
-			Send "{Right 3}"
+			Send "{Right 4}"
 			Sleep 400
 			Send "{Enter}"
 			Sleep 1000
@@ -197,7 +197,67 @@ class SalesforceDB extends Application
 
 			; SaveEdit
 			this.altShiftB()
+			Send "{Right 4}"
+			Sleep 400
+			Send "{Enter}"
+			Sleep 1000
+		}
+
+	}
+
+	UpdateOpenDate(cd)
+	{
+		accessOpenDate()
+		{
 			Send "{Right 3}"
+			Sleep 200
+			Send "{Enter}"
+			Sleep 200
+		}
+
+		this.altShiftB()
+		accessOpenDate()
+		Sleep 400
+		Send "{Enter}"
+		Sleep 100
+
+		t := 0
+	 	i := 10
+
+	 	; wait for page to load and check clipboard, or else it times out
+	 	while (A_Clipboard = "none") and (t < 15000)
+	 	{
+	 		; wait
+	 		Sleep i
+	 		t += i
+	 	}
+
+		if t > 15000
+	 		throw Error("Can't access webpage", -1)
+		
+		if (A_Clipboard != cd) or (A_Clipboard = "null")
+		{	
+			; ClickEdit
+			this.altShiftB()
+			accessOpenDate()
+			Send "{Down 1}"
+			Sleep 400
+			Send "{Enter}"
+			Sleep 1400
+
+			Clippy.Shove(cd)
+
+			; ChangeDate
+			this.altShiftB()
+			accessOpenDate()
+			Send "{Down 2}"
+			Sleep 400
+			Send "{Enter}"
+			Sleep 1100
+
+			; SaveEdit
+			this.altShiftB()
+			Send "{Right 4}"
 			Sleep 400
 			Send "{Enter}"
 			Sleep 1000

@@ -59,7 +59,7 @@ routine := Routines(lg, fo)
 ; open windows if not already open
 win.Initialize()
 
-lg.Append(, "System is ready and good to go...")
+lg.Append(, "Session started! Time to make money...")
 
 ; Hotkeys
 {
@@ -67,8 +67,8 @@ lg.Append(, "System is ready and good to go...")
 	F4:: routine.ViewAuditFolder(win, caps, edge, sf, ps)
 	^F4:: routine.GetSalesforceConversionCase(win, edge, sf).OpenAuditFolder(win, caps, edge, sf, ps).ViewAuditPDFs(win, aa)
 	F5:: win.FocusWindow(ob)
-	^F6:: routine.AddFDMIDToSalesforce(win, edge, sf)
-	^+F6:: routine.AddClosedDateToSalesforce(win, edge, sf)
+	^F6:: routine.AddConversionDateToSalesforce(win, edge, sf)
+	^+F6:: routine.AddOpenDateToSalesforce(win, edge, sf)
 	^F7:: routine.PrepareClosureFormEmail(win, caps, ol)
 	^+F7:: routine.PrepareConversionEmail(win, caps, ol)
 	F8:: routine.GetCAPSAccount(win, caps)
@@ -80,7 +80,11 @@ lg.Append(, "System is ready and good to go...")
 }
 
 ; Emergency brakes
-F12:: ExitApp
+F12::
+{
+	Critical
+	ExitApp
+}
 ^!x:: Reload
 
 OnExit LogStopReason
