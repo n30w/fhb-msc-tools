@@ -287,7 +287,7 @@ class FileHandler
 	static IOInputPath := FileHandler.Config("Paths", "IOInputPath")
 	static IOOutputPath := FileHandler.Config("Paths", "IOOutputPath")
 
-	;  Recursively compares every file to a target file name in a directory; if match, returns path of a target file.
+	; Recursively compares every file to a target file name in a directory; if match, returns path of a target file.
 	static RetrievePath(dir, name, ext)
 	{
 		fileName := ""
@@ -311,7 +311,7 @@ class FileHandler
 		return splitPath[splitPath.length]
 	}
 
-	; Reads all the words in a file, returns the first match of a pattern
+	; Reads all the words in a file, returns the first match of a pattern.
 	static MatchPatternInFile(path, pattern)
 	{
 		; array position of found match
@@ -455,6 +455,100 @@ class FileHandler
 		return merchants
 	}
 
+	; Creates an array of merchant objects from a CSV or TSV file. If the user wants to use a text file, provide a scheme.
+	static CreateMerchantArray(file, scheme*)
+	{
+		merchants := Array()
+		cols := Array()
+		schemeLength := scheme.length
+		
+		if schemeLength > 0
+		{
+			for s in scheme
+			{
+				cols.Push(s)
+			}
+		}
+
+		ext := StrSplit(file, ".")[2]
+		attr := ""
+
+		if ext = "tsv" and schemeLength = 0
+		{
+			Loop read, FileHandler.IOInputPath . file
+			{
+				i := A_Index
+				attr := StrSplit(A_LoopReadLine, A_Tab)
+				m := Merchant()
+				for a in attr
+				{
+					j := A_Index
+					if i = 1
+					{
+						cols.Push(a)
+					}
+					else
+					{
+						m.%cols[j]% := a
+					}
+				}
+				if i != 1
+				{
+					m.scheme := cols
+					merchants.Push(m)
+				}
+			}
+		}
+		else if ext = "csv" and schemeLength = 0
+		{
+			Loop read, FileHandler.IOInputPath . file
+			{
+				i := A_Index
+				line := A_LoopReadLine
+				m := Merchant()
+				Loop parse, line, "CSV"
+				{
+					j := A_Index
+					k := A_LoopField
+					if i = 1 ; first line of CSV is column names, so add columns names to col for future ref
+					{
+						cols.Push(k)
+					}
+					else
+					{
+						m.%cols[j]% := A_LoopField
+					}
+				}
+				if i != 1
+				{
+					m.scheme := cols
+					merchants.Push(m)
+				}
+			}
+		}
+		else if ext = "txt" and schemeLength > 0
+		{
+			Loop read, FileHandler.IOInputPath . file
+			{
+				i := A_Index
+				attr := StrSplit(A_LoopReadLine, A_Tab)
+				m := Merchant()
+				for a in attr
+				{
+					j := A_Index
+					m.%cols[j]% := a
+				}
+				merchants.Push(m)
+			}
+		}
+		else if ext = "txt" and schemeLength = 0
+		{
+			return -1
+		}
+	
+		return merchants
+	}
+
 	static TextToMerchantAccountIDArray(path)
 	{
 		merchants := Array()
@@ -526,5 +620,51 @@ class FileHandler
 	RemoveTemp(path)
 	{
 		Try FileRecycle this.inPath
+	}
+}
+
+class Merchant
+{
+	; CSV scheme for columns.
+	scheme := Array()
+	
+	; General merchant information
+	dba := "none"
+	wpmid := "none"
+	fdmid := "none"
+	chain := "none"
+	superChain := "none"
+	tin := "none"
+	dda := "none"
+	openDate := "none"
+	closeDate := "none"
+	conversionDate := "none"
+
+	; SalesforceDateFormat receives a date in the form of a string, then turns it into a date that is accepted by Salesforce fields.
+	SalesforceDateFormat(s)
+	{
+		newFormat := ""
+
+		if SubStr(s, 1, 1) = 0 ; 0 in months place
+		{
+			newFormat .= SubStr(s, 2, 2)
+		}
+		else
+		{
+			newFormat .= SubStr(s, 1, 3)
+		}
+
+		if SubStr(s, 4, 1) = 0 ; 0 in days place
+		{
+			newFormat .= SubStr(s, 5, 2)
+		}
+		else
+		{
+			newFormat .= SubStr(s, 4, 3)
+		}
+		
+		newFormat .= SubStr(s, -4)
+
+		return newFormat
 	}
 }
