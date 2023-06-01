@@ -359,102 +359,6 @@ class FileHandler
 	; Creates a new file title/path with a timestamp.
 	static NewTimestampedFile(title, path?, ext?) => Format("{1}{2}-{3}.{4}", ( IsSet(path) ? path : FileHandler.Config("Paths", "OutputPath") ), title, Logger.GetFileDateTime(), ( IsSet(ext) ? ext : "txt") )
 
-	static TextToMerchantAndDateArray(path)
-	{
-		; remove 0's in date
-		newDateFormat(s)
-		{
-			newFormat := ""
-
-			if SubStr(s, 1, 1) = 0 ; 0 in months place
-			{
-				newFormat .= SubStr(s, 2, 2)
-			}
-			else
-			{
-				newFormat .= SubStr(s, 1, 3)
-			}
-
-			if SubStr(s, 4, 1) = 0 ; 0 in days place
-			{
-				newFormat .= SubStr(s, 5, 2)
-			}
-			else
-			{
-				newFormat .= SubStr(s, 4, 3)
-			}
-			
-			newFormat .= "20" . SubStr(s, -2)
-
-			return newFormat
-		}
-
-		merchants := Array()
-
-		Loop read, FileHandler.IOInputPath . path
-		{
-			attr := StrSplit(A_LoopReadLine, A_Tab)
-			merchant := { wpmid: attr[1], newDate: newDateFormat(attr[2]) }
-			merchants.Push(merchant)
-		}
-
-		return merchants
-	}
-
-	static TextToMerchantAndDateArrayRetainYear(path)
-	{
-		; remove 0's in date
-		newDateFormat(s)
-		{
-			newFormat := ""
-
-			if SubStr(s, 1, 1) = 0 ; 0 in months place
-			{
-				newFormat .= SubStr(s, 2, 2)
-			}
-			else
-			{
-				newFormat .= SubStr(s, 1, 3)
-			}
-
-			if SubStr(s, 4, 1) = 0 ; 0 in days place
-			{
-				newFormat .= SubStr(s, 5, 2)
-			}
-			else
-			{
-				newFormat .= SubStr(s, 4, 3)
-			}
-			
-			newFormat .= SubStr(s, -4)
-
-			return newFormat
-		}
-
-		merchants := Array()
-
-		Loop read, FileHandler.IOInputPath . path
-		{
-			attr := StrSplit(A_LoopReadLine, A_Tab)
-			merchant := { wpmid: attr[1], newDate: newDateFormat(attr[2]) }
-			merchants.Push(merchant)
-		}
-
-		return merchants
-	}
-
-	static TextToMerchantArray(path)
-	{
-		merchants := Array()
-		Loop read, FileHandler.IOInputPath . path
-		{
-			attr := StrSplit(A_LoopReadLine, A_Tab)
-			merchant := { wpmid: attr[1], fdmid: attr[2], dba: "" }
-			merchants.Push(merchant)
-		}
-		return merchants
-	}
-
 	; Creates an array of merchant objects from a CSV or TSV file. If the user wants to use a text file, provide a scheme.
 	static CreateMerchantArray(file, scheme*)
 	{
@@ -549,16 +453,6 @@ class FileHandler
 		return merchants
 	}
 
-	static TextToMerchantAccountIDArray(path)
-	{
-		merchants := Array()
-
-		Loop read, FileHandler.IOInputPath . path
-		{
-			attr := StrSplit(A_LoopReadLine, A_Tab)
-		}
-	}
-
 	tmpPath := FileHandler.Config("Paths", "TempFiles")
 
 	__New(inPath?, outPath?, callerName?)
@@ -625,7 +519,7 @@ class FileHandler
 
 class Merchant
 {
-	; CSV scheme for columns.
+	; Scheme for columns (abc, xyz, ...).
 	scheme := Array()
 	
 	; General merchant information
@@ -637,7 +531,7 @@ class Merchant
 	tin := "none"
 	dda := "none"
 	openDate := "none"
-	closeDate := "none"
+	closedDate := "none"
 	conversionDate := "none"
 
 	; SalesforceDateFormat receives a date in the form of a string, then turns it into a date that is accepted by Salesforce fields.
