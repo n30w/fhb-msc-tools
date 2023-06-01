@@ -6,6 +6,11 @@ Open(s)
 	Run(s.Path)
 }
 
+Close(s)
+{
+	WinClose(s.Ref)
+}
+
 class Application
 {
 	__New(name, pathDir?, fileName?, ref?)
@@ -17,11 +22,9 @@ class Application
 		this.Ref := ( IsSet(ref) ? ref : "none" ) ; reference by title or process name from AHK Window Spy
 	}
 	
-	; generic start function that can be overriden with custom start
+	; Generic start function that can be overridden with custom start.
 	Start() => Open(this)
-	
-	; minimize window to dock
-	Shrink() => WinMinimize(this.Ref)
-	
-	Grow() => WinRestore(this.Ref)
+
+	; Generic stop function that can be overridden with custom stop.
+	Stop() => Close(this)
 }

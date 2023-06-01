@@ -396,7 +396,7 @@ class Routines
 		MsgBox "Open dates updated"
 	}
 	
-	; gets data from CAPS and puts it into email order template
+	; Gets data from CAPS and puts it into email order template.
 	GenerateOrder(win, caps, ob)
 	{
 		wp := DataHandler.Sanitize(this.data.cb.Update())
@@ -504,16 +504,20 @@ class Routines
 		return this
 	}
 
-	ExportPDFSToAudit(win, caps, excel)
+	; Exports CAPS and Excel PDFs to corresponding folders for auditing purposes.
+	ExportPDFsToAudit(win, caps, excel)
 	{
 		if YesNoBox("Is CAPS print to PDF setup to the correct folder?") = "No"
-			return
+		 	return
+
+		if win.WinExists(caps)
+			caps.Stop()
 
 		statBar := StatusBar()
 
 		accountNames := DataHandler("resources\accountNames.csv")
 		outFile := Format(this.fileOps.Config("Paths", "RoutineLogs") . "ExportPDFSToAudit-{1}.txt", this.logger.getFileDateTime())
-		LoadingZone := this.fileOps.Config("Paths", "OutputPath") . "auditing\"
+		LoadingZone := this.fileOps.Config("Paths", "IOOutputPath") . "auditing\"
 		merchants := FileHandler.TextToMerchantArray("midtopdf.txt")
 
 		funcName := this.getFuncName(A_ThisFunc)
@@ -523,50 +527,41 @@ class Routines
 		stopwatch := Timer()
 		stopwatch.StartTimer()
 		
-		for merchant in merchants ; get corresponding DBA for each WP MID, create folder if it doesn't exist.
+		for merchant in merchants
 		{
 			try merchant.dba := DataHandler.Retrieve(merchant.wpmid).AccountName
 			catch
 				merchant.dba := accountNames.Retrieve(merchant.wpmid).AccountName
+			
 			statdba := merchant.dba
-			updateStatusBar(state)
-			{
-				msg := "
-				(
-				{1}/{2}: {3}
-				{4}
-				)"
-				
-				statBar.Show(Format(msg, A_Index, merchants.length, statdba, state))
-			}
+			msg := "
+			(
+			{1}/{2}: {3}
+			{4}
+			)"
+			
+			statBar.Show(Format(msg, A_Index, merchants.length, statdba, "Processing"))
 
-			updateStatusBar("Processing")
-
-			MerchantDir := Format(LoadingZone . "directories\{1}\2023.FDMS conversion\", merchant.dba)
+			MerchantDir := Format(LoadingZone . "directories\{1}\2023.FDMS conversion\", StrReplace(merchant.dba, "."))
 			
 			CAPSPDFName := "CAPS fees - " . merchant.wpmid
 			FDMIDPDFName := "FDMID code listing - " . merchant.wpmid
 			
 			currentCAPSPDFPath := LoadingZone . CAPSPDFName . ".pdf"
 			currentFDMSPDFPath := LoadingZone . FDMIDPDFName . ".pdf"
-
-			; if there are no matching DBAs, make a new folder
-			if not DirExist(MerchantDir)
-			{
-				updateStatusBar("Creating Merchant Directory")
-				DirCreate MerchantDir
-			}
 			
-			; if CAPS fee doesn't exist, access CAPS and create pdf
-			if not FileExist(MerchantDir . CAPSPDFName . ".pdf")
+			; If there are no matching DBAs, make a new folder.
+			if not DirExist(MerchantDir)
+				DirCreate MerchantDir
+			
+			; If CAPS fee doesn't exist, access CAPS and create pdf.
+			CAPSFeePDFDoesNotExist := !(FileExist(MerchantDir . CAPSPDFName . ".pdf"))
+			if CapsFeePDFDoesNotExist
 			{
-				updateStatusBar("Exporting CAPS PDF")
-				; MsgBox MerchantDir . CAPSPDFName . ".pdf" . " does not exist"
 				Clippy.Shove(merchant.wpmid)
 				win.FocusWindow(caps)
-				this.GetCAPSAccount(win, caps)
+				caps.clickBinocularAndSearch(merchant.wpmid)
 				caps.SaveCAPSFeesPDF(CAPSPDFName)
-				
 				try FileMove currentCAPSPDFPath, MerchantDir, 1
 				catch as e
 				{
@@ -578,8 +573,9 @@ class Routines
 			
 			Clippy.Shove("")
 			
-			; generate PDF from Account Fee code listing document
-			if not FileExist(MerchantDir . FDMIDPDFName . ".pdf")
+			; Generate PDF from Account Fee code listing document.
+			FDMIDFeePDFDoesNotExist := !(FileExist(MerchantDir . FDMIDPDFName . ".pdf"))
+			if FDMIDFeePDFDoesNotExist
 			{
 				noteName := merchant.wpmid . " " . merchant.fdmid . " has no FDMID listed"
 				if not FileExist(MerchantDir . noteName . ".txt")
@@ -590,7 +586,7 @@ class Routines
 					; "`r`n" is a value returned from the Excel Macro
 					if A_Clipboard = "`r`n" ; current FDMID is not in the list
 					{
-						updateStatusBar("Current merchant has no fee codes... making note of that")
+						;updateStatusBar("Current merchant has no fee codes... making note of that")
 						FileAppend(noteName, MerchantDir . "\" . noteName . ".txt")
 						this.logger.Append(excel, merchant.dba . " " . merchant.fdmid . " has no listings in Account Fee Code Listings")
 						Clippy.Shove("")
@@ -598,7 +594,7 @@ class Routines
 					}
 					else
 					{
-						updateStatusBar("Exporting FDMID Fee Codes PDF")
+						;updateStatusBar("Exporting FDMID Fee Codes PDF")
 						Clippy.Shove(FDMIDPDFName)
 						excel.DefaultPDFSaveMacro()
 						try FileMove currentFDMSPDFPath, MerchantDir, 1
@@ -628,6 +624,7 @@ class Routines
 		MsgBox "PDF Export Complete"
 	}
 	
+	; Creates a closure email in Outlook given a MID.
 	PrepareClosureFormEmail(win, caps, ol)
 	{
 		wpmid := A_Clipboard
@@ -670,6 +667,7 @@ class Routines
 		ol.To(email[]).CC().Subject("Close Account Request Form - " . dba . " (" . wpmid . ")").Body()
 	}
 
+	; Creates a conversion email in Outlook given a MID.
 	PrepareConversionEmail(win, caps, ol)
 	{
 		wpmid := A_Clipboard
@@ -695,7 +693,7 @@ class Routines
 		}
 		
 		; Find the correct md file to read
-		mdPath := FileHandler.RetrievePath("..\merchants", dba, "md")
+		mdPath := FileHandler.RetrievePath(FileHandler.Config("Paths", "MerchantMDs"), dba, "md")
 		
 		if mdPath = "none"
 		{
@@ -720,6 +718,7 @@ class Routines
 		Send order
 	}
 
+	; Prepares and sends a notification email about a routine that has finished, or anything for that matter.
 	PrepareAndSendNotificationEmail(win, ol, routineName, elapsedTime, customText?)
 	{
 		subject := "[ROUTINE COMPLETE] " . routineName .  " - " . Logger.GetFileDateTime()
@@ -732,8 +731,10 @@ class Routines
 		ol.CreateNewEmail().To(FileHandler.Config("Fields", "MyEmail")).CC().Subject(subject).Body(body)
 		Sleep 1000
 		ol.SendEmail()
+		this.logger.Append(this.getFuncName(A_ThisFunc), "Email notification sent!")
 	}
 
+	; Opens the PDFs in an audit folder given MID.
 	OpenAuditFolder(win, caps, edge, sf, ps, wpmid?)
 	{
 		mid := ""
@@ -754,6 +755,7 @@ class Routines
 		return this
 	}
 
+	; Opens a folder from shared drive using MID. 
 	ViewAuditFolder(win, caps, edge, sf, ps, wpmid?)
 	{
 		mid := ""
@@ -776,6 +778,7 @@ class Routines
 		return this
 	}
 
+	; Moves already open Audit Fee PDFs to corresponding spaces on the screen.
 	ViewAuditPDFs(win, aa)
 	{
 		WinWaitActive aa.Ref
@@ -818,6 +821,7 @@ class Routines
 		MsgBox "Convert Mid to Case ID complete"
 	}
 
+	; Given any merchant attribute, opens a small window with fields from that entry point.
 	DataStoreQuickLook()
 	{
 		c := this.data.cb.Update()
@@ -875,51 +879,141 @@ class Routines
 	}
 }
 
-class RoutineObject
-{
-	__New()
-	{
-		this.active := False
-		this.paused := False
-		this.uptime := Timer()
-		this.process := Timer()
-	}
+; class RoutineObject
+; {
+; 	active := False
+; 	paused := False
+; 	uptime := Timer()
+; 	process := Timer()
 
-	IsActive() => this.active
+; 	__New(logger)
+; 	{
+; 		this.logger := logger
+; 	}
 
-	IsPaused() => this.paused
+; 	IsActive() => this.active
 
-	Do()
-	{
-		this.Begin()
-		; ...
-	}
+; 	IsPaused() => this.paused
 
-	Begin()
-	{
-		this.active := True
-		this.paused := False
-		this.uptime.StartTimer()
-		this.process.StartTimer()
-	}
+; 	Do()
+; 	{
+; 		this.Begin()
+; 		; ...
+; 	}
 
-	Hold()
-	{
-		this.paused := True
-		this.process.StopTimer()
-	}
+; 	Begin()
+; 	{
+; 		this.active := True
+; 		this.paused := False
+; 		this.uptime.StartTimer()
+; 		this.process.StartTimer()
+; 	}
 
-	Resume()
-	{
-		this.paused := False
-		this.process.StartTimer()
-	}
+; 	Hold()
+; 	{
+; 		this.paused := True
+; 		this.process.StopTimer()
+; 	}
 
-	Butcher()
-	{
-		this.active := False
-		this.paused := False
-		this.process.StopTimer()
-		this.uptime.StopTimer()
-	}
-}
+; 	Resume()
+; 	{
+; 		this.paused := False
+; 		this.process.StartTimer()
+; 	}
+
+; 	Butcher()
+; 	{
+; 		this.active := False
+; 		this.paused := False
+; 		this.process.StopTimer()
+; 		this.uptime.StopTimer()
+; 	}
+
+; 	Stop()
+; 	{
+; 		this.Butcher()
+; 	}
+; }
+
+; class UpdateSalesforceFields extends RoutineObject
+; {
+; 	__New(logger, apps, name, file)
+; 	{
+; 		this.logger := logger
+; 		this.apps := apps
+; 		this.name := name
+		
+; 		this.statBar := StatusBar()
+; 		this.routineLogFile := Logger(FileHandler.Config("Paths", "RoutineLogs") . this.name . "\")
+; 		this.inPath := FileHandler.Config("Paths", "TempCSV")
+; 		this.outPath := FileHandler.Config("Resources", this.name)
+; 		this.csv := FileHandler(inPath, outPath, this.name)
+; 		this.merchants := FileHandler.TextToMerchantAndDateArrayRetainYear(file)
+; 		this.accountIDs := DataHandler(FileHandler.Config("Resources", "AccountIDs"))
+; 		this.parseMap := DataHandler(outPath)
+; 		this.realTotal := parseMap.DsLength//parsemap.Cols.length
+; 	}
+
+; 	Do()
+; 	{
+; 		this.Begin()
+
+; 		this.logger.Append(funcName, "Started")
+		
+; 		this.apps.win.FocusWindow(this.apps.edge)
+
+; 		if not edge.TabTitleContains("Salesforce")
+; 			edge.NewTab()
+		
+; 		for m in merchants
+; 		{
+			
+; 			idx := parseMap.Retrieve(m.wpmid).OrderIndex
+
+; 			statBar.Show("Merchant: " . A_Index . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal)
+
+; 			Clippy.Shove("")
+
+; 			sfUpdated := parseMap.IsParsed(m.wpmid)
+
+; 			if sfUpdated
+; 				continue
+
+; 			urlExists := sf.HasURL(this.logger, m, accountIDs)
+			
+; 			if urlExists
+; 			{
+; 				edge.FocusURLBar()
+; 				edge.PasteURLAndGo(sf.FullURL)
+
+; 				Clippy.Shove("none")
+
+; 				sf.UpdateOpenDate(m.newDate)
+; 				orderIndex := parseMap.Retrieve(m.wpmid).OrderIndex
+; 				parseMap.SetParsed(orderIndex)
+				
+; 				this.logger.Append(funcName, m.wpmid . " updated")
+
+; 				Sleep 2000
+; 			}
+; 			else
+; 			{
+; 				routineLogfile.Append(, m.wpmid . " does not exist on Salesforce")
+; 				continue
+; 			}
+; 			str := parseMap.DataStoreToFileString(csv.Scheme)
+; 			csv.StringToCSV(str)
+; 		}
+
+; 		this.logger.Timer(merchants.length . " merchant account closed dates checked and/or updated.", this.process)
+
+; 		statBar.Reset()
+
+; 		body := "Total converted: " . idx . " of " . realTotal . "`r`nTime Elapsed: " .  this.process.ElapsedTime()
+; 		this.PrepareAndSendNotificationEmail(win, ol, this.name, this.process.ElapsedTime(), body)
+		
+; 		this.Stop()
+		
+; 		MsgBox "Open dates updated"
+; 	}
+; }

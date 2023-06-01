@@ -22,11 +22,15 @@ class CapsDB extends Application
 	goToInfoAndContact()
 	{
 		Sleep 4000
-		Click 280, 40
-		Sleep 600
-		Click 280, 105
-		Sleep 500
-		Click 60, 315
+		Send "{Alt}"
+		Sleep 300
+		Send "{Right 2}"
+		Sleep 300
+		Send "{Enter}"
+		Sleep 300
+		Send "{Down 2}"
+		Sleep 100
+		Send "{Enter}"
 	}
 	
 	; clicks the binoculars to search and enters a search value and clicks enter
@@ -39,16 +43,16 @@ class CapsDB extends Application
 		Send "{Enter}"
 		Sleep 1700
 
-		windowCount := WinGetCount(this.Ref)
+		; windowCount := WinGetCount(this.Ref)
 
-		if windowCount > 1 ; if window count is > 1, that means there is an error that popped up
-		{
-			this.navigateErrorBox()
-			Sleep 1000
-			this.Start()
-			Sleep 1000
-			this.clickBinocularAndSearch(mid)
-		}
+		; if windowCount > 1 ; if window count is > 1, that means there is an error that popped up
+		; {
+		; 	this.navigateErrorBox()
+		; 	Sleep 1000
+		; 	this.Start()
+		; 	Sleep 1000
+		; 	this.clickBinocularAndSearch(mid)
+		; }
 	}
 	
 	; saves the charge fees from CAPS

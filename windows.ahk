@@ -3,14 +3,6 @@
 #Include "actions.ahk"
 #Include "log.ahk"
 
-WinExists(app)
-{
-	if WinExist(app.Ref)
-		return True
-	else
-		return False
-}
-
 class Windows
 {
 	ProcessList := Array()
@@ -30,15 +22,23 @@ class Windows
 		this.logger.Append(,"Initializing windows...")
 		for app in this.ProcessList
 		{
-			if not WinExists(app)
+			if not this.WinExists(app)
 				app.Start()
 		}
 		this.logger.Append(,"Successfully initialized windows")
 	}
 	
+	WinExists(app)
+	{
+		if WinExist(app.Ref)
+			return True
+		else
+			return False
+	}
+
 	FocusWindow(app)
 	{
-		if WinExists(app)
+		if this.WinExists(app)
 		{
 			WinActivate
 		}
@@ -71,5 +71,11 @@ class Windows
 		Sleep 500
 		Send "{LWin up}{Shift up}{Right up}"
 	}
+
+	; Minimize window to taskbar.
+	Shrink() => WinMinimize(this.Ref)
+	
+	; Show app again when in the taskbar.
+	Grow() => WinRestore(this.Ref)
 }
 

@@ -40,7 +40,7 @@ DataHandler.BuildStore("resources\data\data.csv")
 
 ; initialize all applications
 {
-	caps := CapsDB("CAPS",, "CAPS.appref-ms", "CAPS")
+	caps := CapsDB("CAPS",, "CAPS.appref-ms", "ahk_exe CAPS.exe")
 	excel := MSExcel("ExcelDB", fo.Config("Paths", "IOInputPath"), "feecodes.xlsm", "feecodes - Excel")
 	ol := OutlookMail("Outlook", "C:\Program Files\Microsoft Office\root\Office16", "OUTLOOK.exe", "ahk_exe OUTLOOK.exe")
 	aa := AdobeAcrobat("Adobe Acrobat",,, "ahk_exe AcroRd32.exe")
@@ -51,7 +51,7 @@ DataHandler.BuildStore("resources\data\data.csv")
 }
 
 ; Windows to initalize on script startup
-win := Windows(lg, edge, ob, caps, ol)
+win := Windows(lg, ob, caps, ol)
 
 ; initialize routines
 routine := Routines(lg, fo)
@@ -62,7 +62,7 @@ win.Initialize()
 lg.Append(, "Session started! Time to make money...")
 
 ; Hotkeys
-{
+{	
 	F3::routine.ConvertMIDToCaseID()
 	F4:: routine.ViewAuditFolder(win, caps, edge, sf, ps)
 	^F4:: routine.GetSalesforceConversionCase(win, edge, sf).OpenAuditFolder(win, caps, edge, sf, ps).ViewAuditPDFs(win, aa)
@@ -76,7 +76,8 @@ lg.Append(, "Session started! Time to make money...")
 	^+F8:: routine.GetCAPSAccount(win, caps).GetSalesforceAccount(win, edge, sf)
 	F9:: routine.GenerateOrder(win, caps, ob)
 	F10:: routine.DataStoreQuickLook()
-	^F11:: routine.ExportPDFSToAudit(win, caps, excel)
+	^F11:: routine.ExportPDFsToAudit(win, caps, excel)
+	F11:: caps.Start()
 }
 
 ; Emergency brakes
