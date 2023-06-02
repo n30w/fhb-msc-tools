@@ -12,9 +12,11 @@ fo := FileHandler()
 lg := Logger(fo.Config("Paths", "SystemLogs"))
 ps := Powershell("Powershell",,,)
 
+Logger.SetFilePath(fo.Config("Paths", "SystemLogs"))
+
 LogStopReason(ExitReason, ExitCode)
 {
-	lg.Append(, "===== Stopping due to " . ExitReason . " =====")
+	Logger.Append(, "===== Stopping due to " . ExitReason . " =====")
 }
 
 ; initialize shared drive
@@ -27,7 +29,7 @@ LogStopReason(ExitReason, ExitCode)
 	if not acnamagent ; local network VPN connection not on
 	{
 		MsgBox "Unable to load shared drive, check network connection"
-		lg.Append(, "Unable to load shared drive, check network connection")
+		Logger.Append(, "Unable to load shared drive, check network connection")
 		loadShared := False
 	}
 
@@ -46,11 +48,11 @@ DataHandler.BuildStore("resources\data\data.csv")
 	aa := AdobeAcrobat("Adobe Acrobat",,, "ahk_exe AcroRd32.exe")
 	npp := NotepadPP("Notepad++",, "notepad++.lnk", "ahk_exe notepad++.exe")
 	edge := MSEdge("Edge",, "edge.lnk", "ahk_exe msedge.exe")
-	sf := SalesforceDB("Salesforce",,,)
+	sf := SalesforceDB()
 	ob := ObsidianVault("Obsidian",, "obsidian.lnk", "ahk_exe Obsidian.exe")
 }
 
-; Windows to initalize on script startup
+; Windows to initialize on script startup
 win := Windows(lg, ob, caps, ol)
 
 ; initialize routines
@@ -59,7 +61,7 @@ routine := Routines(lg, fo)
 ; open windows if not already open
 win.Initialize()
 
-lg.Append(, "Session started! Time to make money...")
+Logger.Append(, "Session started! Time to make money...")
 
 ; Hotkeys
 {	
@@ -68,7 +70,21 @@ lg.Append(, "Session started! Time to make money...")
 	^F4:: routine.GetSalesforceConversionCase(win, edge, sf).OpenAuditFolder(win, caps, edge, sf, ps).ViewAuditPDFs(win, aa)
 	F5:: win.FocusWindow(ob)
 	^F6:: routine.AddConversionDateToSalesforce(win, edge, sf)
-	^+F6:: routine.AddOpenDateToSalesforce(win, edge, sf)
+	^+F6:: ; routine.AddOpenDateToSalesforce(win, edge, sf)
+	{
+		className := "SFUpdateOpenDate"
+		sfUpdate := SFUpdateOpenDate()
+		sfRoutine := UpdateSalesforceFields()
+		apps := {
+			win: win, 
+			sf: sfUpdate, 
+			edge: edge, 
+			ol: ol
+		}
+		scheme := {}
+		sfRoutine.Initialize(className, apps, scheme)
+		sfRoutine.Do()
+	}
 	^F7:: routine.PrepareClosureFormEmail(win, caps, ol)
 	^+F7:: routine.PrepareConversionEmail(win, caps, ol)
 	F8:: routine.GetCAPSAccount(win, caps)
@@ -86,6 +102,10 @@ F12::
 	Critical
 	ExitApp
 }
-^!x:: Reload
+^!x::
+{
+	Critical
+	Reload
+}
 
 OnExit LogStopReason

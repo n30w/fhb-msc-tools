@@ -32,10 +32,10 @@ class SalesforceDB extends Application
 	
 	CaseURL(s) => "https://fhbank.lightning.force.com/lightning/r/Case/" . this.urlID(s) . "/view"
 
-	; build URL ID
+	; urlID builds a URL ID
 	urlID(s) => (s . this.convert15to18(s))
 
-	HasURL(l, m, d?)
+	HasURL(m, d?)
 	{
 		try
 		{
@@ -46,7 +46,7 @@ class SalesforceDB extends Application
 		}
 		catch
 		{
-			l.Append(this.HasURL.Name, "ERROR: Unable to retrieve merchant AccountID => " . m.wpmid . " does not exist in DataStore")
+			Logger.Append(this.HasURL.Name, "ERROR: Unable to retrieve merchant AccountID => " . m.wpmid . " does not exist in DataStore")
 			return False
 		}
 		return True
@@ -262,7 +262,12 @@ class SalesforceDB extends Application
 			Send "{Enter}"
 			Sleep 1000
 		}
+	}
 
+	; Takes a merchant object
+	UpdateFields(m)
+	{
+		; Put code here...
 	}
 
 	UpdateFDMID(fdmid)
@@ -301,6 +306,70 @@ class SalesforceDB extends Application
 			Sleep 200
 			Send "{Enter}"
 			Sleep 200
+		}
+	}
+}
+
+class SFUpdateOpenDate extends SalesforceDB
+{
+	UpdateFields(m)
+	{
+		accessOpenDate()
+		{
+			Send "{Right 3}"
+			Sleep 200
+			Send "{Enter}"
+			Sleep 200
+		}
+
+		this.altShiftB()
+		accessOpenDate()
+		Sleep 400
+		Send "{Enter}"
+		Sleep 100
+
+		t := 0
+	 	i := 10
+
+	 	; wait for page to load and check clipboard, or else it times out
+	 	while (A_Clipboard = "none") and (t < 15000)
+	 	{
+	 		; wait
+	 		Sleep i
+	 		t += i
+	 	}
+
+		if t > 15000
+	 		throw Error("Can't access webpage", -1)
+		
+		d := m.SalesforceDateFormat(m.openDate)
+
+		if (A_Clipboard != d) or (A_Clipboard = "null")
+		{	
+			; ClickEdit
+			this.altShiftB()
+			accessOpenDate()
+			Send "{Down 1}"
+			Sleep 400
+			Send "{Enter}"
+			Sleep 1400
+
+			Clippy.Shove(d)
+
+			; ChangeDate
+			this.altShiftB()
+			accessOpenDate()
+			Send "{Down 2}"
+			Sleep 400
+			Send "{Enter}"
+			Sleep 1100
+
+			; SaveEdit
+			this.altShiftB()
+			Send "{Right 4}"
+			Sleep 400
+			Send "{Enter}"
+			Sleep 1000
 		}
 	}
 }

@@ -2,25 +2,51 @@
 
 class Logger
 {
-	logFilePath := ""
-	
 	static GetFileDateTime() => FormatTime(,"yyyyMMdd-hhmmsstt")
-
-	GetFileDateTime() => FormatTime(,"yyyyMMdd-hhmmsstt")
-	GetEntryDateTime() => FormatTime(,"hh:mm:ss tt")
+	static GetEntryDateTime() => FormatTime(,"hh:mm:ss tt")
 	
-	__New(filePath?)
-    {
+	static logFilePath := ""
+
+	static SetFilePath(filePath?)
+	{
 		if IsSet(filePath)
 		{
-			this.logFilePath := filePath . this.GetFileDateTime() . " log.txt"
+			Logger.logFilePath := filePath . Logger.GetFileDateTime() . " log.txt"
 			if InStr(filePath, "logs\system")
-				this.Append(,"System boot, logged in as " . StrUpper(A_Username))
+				Logger.Append(,"System boot, logged in as " . StrUpper(A_Username))
 		}
 		else
 		{
 			DirCreate "logs"
-			this.logFilePath := "logs\"
+			Logger.logFilePath := "logs\"
+		}
+	}
+
+	static Append(app?, msg := "")
+	{
+		timestamp := Logger.GetEntryDateTime()
+        logEntry := "[" . timestamp . "] "
+        
+		if IsSet(app)
+			logEntry .= "@" . StrUpper(( IsObject(app) ? app.Name : app )) . " => "
+		
+		FileAppend(logEntry . msg "`n", Logger.logFilePath)
+	}
+
+	GetFileDateTime() => FormatTime(,"yyyyMMdd-hhmmsstt")
+	GetEntryDateTime() => FormatTime(,"hh:mm:ss tt")
+	
+	lfp := "logs\routines\"
+	
+	__New(filePath?, className?)
+    {
+		if IsSet(className)
+		{
+			this.lfp .= className . "-" . this.GetFileDateTime() . " log.txt"
+		}
+		else
+		{	
+			this.lfp .= "log.txt"
 		}
     }
 	
@@ -32,7 +58,7 @@ class Logger
 		if IsSet(app)
 			logEntry .= "@" . StrUpper(( IsObject(app) ? app.Name : app )) . " => "
 		
-		FileAppend(logEntry . msg "`n", this.logFilePath)
+		FileAppend(logEntry . msg "`n", this.lfp)
     }
 
 	Timer(msg, t)

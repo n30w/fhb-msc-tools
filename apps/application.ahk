@@ -13,9 +13,13 @@ Close(s)
 
 class Application
 {
-	__New(name, pathDir?, fileName?, ref?)
+	Name := ""
+	__New(name?, pathDir?, fileName?, ref?)
 	{
-		this.Name := name ; internal name for program
+		if not IsSet(name)
+			name := "none"
+		else
+			this.Name := name
 		if not IsSet(fileName)
 			fileName := "none"
 		this.Path := ( IsSet(pathDir) ? pathDir . "\" . fileName : "resources\apps\" . fileName ) ; use default resource path
