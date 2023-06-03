@@ -68,21 +68,29 @@ Logger.Append(, "Session started! Time to make money...")
 	F3::routine.ConvertMIDToCaseID()
 	F4:: routine.ViewAuditFolder(win, caps, edge, sf, ps)
 	^F4:: routine.GetSalesforceConversionCase(win, edge, sf).OpenAuditFolder(win, caps, edge, sf, ps).ViewAuditPDFs(win, aa)
-	F5:: win.FocusWindow(ob)
-	^F6:: routine.AddConversionDateToSalesforce(win, edge, sf)
-	^+F6:: ; routine.AddOpenDateToSalesforce(win, edge, sf)
+	F5:: Windows.FocusWindow(ob)
+	^F6:: ;routine.AddConversionDateToSalesforce(win, edge, sf)
 	{
-		className := "SFUpdateOpenDate"
-		sfUpdate := SFUpdateOpenDate()
+		bfu := BookmarkletFieldUpdater("ClosDate")
 		sfRoutine := UpdateSalesforceFields()
 		apps := {
-			win: win, 
-			sf: sfUpdate, 
+			sf: bfu,
+			edge: edge,
+			ol: ol
+		}
+		sfRoutine.Initialize("SFUpdateClosedDate", apps)
+		sfRoutine.Do()
+	}
+	^+F6::
+	{
+		bfu := BookmarkFieldUpdater("OpenDate")
+		sfRoutine := UpdateSalesforceFields()
+		apps := {
+			bfu: bfu, 
 			edge: edge, 
 			ol: ol
 		}
-		scheme := {}
-		sfRoutine.Initialize(className, apps, scheme)
+		sfRoutine.Initialize("SFUpdateOpenDate", apps)
 		sfRoutine.Do()
 	}
 	^F7:: routine.PrepareClosureFormEmail(win, caps, ol)

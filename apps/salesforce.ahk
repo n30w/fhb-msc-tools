@@ -5,6 +5,7 @@ class SalesforceDB extends Application
 {
 	FullURL := ""
 
+	; On Microsoft Edge, the bookmark bar can be accessed using the keyboard with the "alt" key. This focuses the bookmark bar and selects the first item on it.
 	altShiftB()
 	{
 		Send "{Alt down}{Shift down}b"
@@ -28,13 +29,16 @@ class SalesforceDB extends Application
 		"DEC", "12"
 	)
 	
+	; AccountURL returns a URL that directs to the merchant's account page on Salesforce.
 	AccountURL(s) => "https://fhbank.lightning.force.com/lightning/r/Account/" . this.urlID(s) . "/view"
 	
+	; CaseURL returns a URL that directs to the merchant's conversion case page on Salesforce.
 	CaseURL(s) => "https://fhbank.lightning.force.com/lightning/r/Case/" . this.urlID(s) . "/view"
 
 	; urlID builds a URL ID
 	urlID(s) => (s . this.convert15to18(s))
 
+	; HasURL checks if a merchant has a corresponding AccountID in the local DataStore(s). It returns True or False.
 	HasURL(m, d?)
 	{
 		try
@@ -145,126 +149,7 @@ class SalesforceDB extends Application
 		}
 	}
 
-	UpdateClosedDate(cd)
-	{
-		accessClosedDate()
-		{
-			Send "{Right 2}"
-			Sleep 200
-			Send "{Enter}"
-			Sleep 200
-		}
-
-		this.altShiftB()
-		accessClosedDate()
-		Sleep 400
-		Send "{Enter}"
-		Sleep 100
-
-		t := 0
-	 	i := 10
-
-	 	; wait for page to load and check clipboard, or else it times out
-	 	while (A_Clipboard = "none") and (t < 15000)
-	 	{
-	 		; wait
-	 		Sleep i
-	 		t += i
-	 	}
-
-		if t > 15000
-	 		throw Error("Can't access webpage", -1)
-		
-		if (A_Clipboard != cd) or (A_Clipboard = "null")
-		{	
-			; ClickEdit
-			this.altShiftB()
-			accessClosedDate()
-			Send "{Down 1}"
-			Sleep 400
-			Send "{Enter}"
-			Sleep 1400
-
-			Clippy.Shove(cd)
-
-			; ChangeDate
-			this.altShiftB()
-			accessClosedDate()
-			Send "{Down 2}"
-			Sleep 400
-			Send "{Enter}"
-			Sleep 1100
-
-			; SaveEdit
-			this.altShiftB()
-			Send "{Right 4}"
-			Sleep 400
-			Send "{Enter}"
-			Sleep 1000
-		}
-
-	}
-
-	UpdateOpenDate(cd)
-	{
-		accessOpenDate()
-		{
-			Send "{Right 3}"
-			Sleep 200
-			Send "{Enter}"
-			Sleep 200
-		}
-
-		this.altShiftB()
-		accessOpenDate()
-		Sleep 400
-		Send "{Enter}"
-		Sleep 100
-
-		t := 0
-	 	i := 10
-
-	 	; wait for page to load and check clipboard, or else it times out
-	 	while (A_Clipboard = "none") and (t < 15000)
-	 	{
-	 		; wait
-	 		Sleep i
-	 		t += i
-	 	}
-
-		if t > 15000
-	 		throw Error("Can't access webpage", -1)
-		
-		if (A_Clipboard != cd) or (A_Clipboard = "null")
-		{	
-			; ClickEdit
-			this.altShiftB()
-			accessOpenDate()
-			Send "{Down 1}"
-			Sleep 400
-			Send "{Enter}"
-			Sleep 1400
-
-			Clippy.Shove(cd)
-
-			; ChangeDate
-			this.altShiftB()
-			accessOpenDate()
-			Send "{Down 2}"
-			Sleep 400
-			Send "{Enter}"
-			Sleep 1100
-
-			; SaveEdit
-			this.altShiftB()
-			Send "{Right 4}"
-			Sleep 400
-			Send "{Enter}"
-			Sleep 1000
-		}
-	}
-
-	; Takes a merchant object
+	; UpdateFields updates field data on Salesforce, like FD Conversion Dates, DBAs, or anything of that matter. It should receive a merchant object. It uses that merchant object to call the "SalesforceDateFormat" method.
 	UpdateFields(m)
 	{
 		; Put code here...
@@ -310,13 +195,92 @@ class SalesforceDB extends Application
 	}
 }
 
+class BookmarkletFieldUpdater extends SalesforceDB
+{
+	; To traverse the bookmark bar, the user can use the arrow keys and the "enter" key to go to sites or run bookmarklets. BookmarkBarFolderIndexes is a map that contains the indexes of the Salesforce Update Fields folders on the bookmark bar that contain my custom bookmarklet Javascript. The corresponding index "i" is used in the "Send "{Right i}"" function to traverse the bookmark bar. Note that the index of each map item matters, and should correspond to the same order as the one on Edge.
+	BookmarkBarFolderIndexes := Map(
+		"FDMID", "0",
+		"ConvDate", "1",
+		"ClosDate", "2",
+		"OpenDate", "3"
+	)
+
+	__New(bookmarkBarFolderName := "FDMID")
+	{
+		this.bookmarkBarFolderName := bookmarkBarFolderName
+	}
+
+	UpdateFields(m)
+	{
+		d := m.createJSParseString()
+		
+		accessClosedDate()
+		{
+			Send "{Right " . this.bookmarkBarFolderNames[this.bookmarkBarFolderName] . "}"
+			Sleep 200
+			Send "{Enter}"
+			Sleep 200
+		}
+
+		this.altShiftB()
+		accessClosedDate()
+		Sleep 400
+		Send "{Enter}"
+		Sleep 100
+
+		t := 0
+	 	i := 10
+
+	 	; wait for page to load and check clipboard, or else it times out
+	 	while (A_Clipboard = "none") and (t < 15000)
+	 	{
+	 		; wait
+	 		Sleep i
+	 		t += i
+	 	}
+
+		if t > 15000
+	 		throw Error("Can't access webpage", -1)
+		
+		;d := m.SalesforceDateFormat(m.openDate)
+		
+		if (A_Clipboard != d) or (A_Clipboard = "null")
+		{	
+			; ClickEdit
+			this.altShiftB()
+			accessClosedDate()
+			Send "{Down 1}"
+			Sleep 400
+			Send "{Enter}"
+			Sleep 1400
+
+			Clippy.Shove(d)
+
+			; ChangeDate
+			this.altShiftB()
+			accessClosedDate()
+			Send "{Down 2}"
+			Sleep 400
+			Send "{Enter}"
+			Sleep 1100
+
+			; SaveEdit
+			this.altShiftB()
+			Send "{Right 4}"
+			Sleep 400
+			Send "{Enter}"
+			Sleep 1000
+		}
+	}
+}
+
 class SFUpdateOpenDate extends SalesforceDB
 {
 	UpdateFields(m)
 	{
 		accessOpenDate()
 		{
-			Send "{Right 3}"
+			Send "{Right " . this.bookmarkBarFolderNames[this.bookmarkBarFolderName] . "}"
 			Sleep 200
 			Send "{Enter}"
 			Sleep 200
@@ -331,7 +295,7 @@ class SFUpdateOpenDate extends SalesforceDB
 		t := 0
 	 	i := 10
 
-	 	; wait for page to load and check clipboard, or else it times out
+	 	; Wait for page to load and check clipboard, or else it times out.
 	 	while (A_Clipboard = "none") and (t < 15000)
 	 	{
 	 		; wait

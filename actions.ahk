@@ -13,6 +13,19 @@
 #Include "apps\adobeacrobat.ahk"
 #Include "apps\powershell.ahk"
 
+; StrJoin turns an array into a string with separators.
+StrJoin(arr, sep)
+{
+	str := ""
+	for a in arr
+	{
+		str .= a
+		if A_Index < arr.length
+			str .= sep
+	}
+	return str
+}
+
 YesNoBox(t)
 {
 	return MsgBox(t,, "YesNo")

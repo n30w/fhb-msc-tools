@@ -313,89 +313,6 @@ class Routines
 		MsgBox "Closed dates updated"
 	}
 
-	; From a TSV, TXT, or CSV file, update every account's closed date on Salesforce.
-	AddOpenDateToSalesforce(win, edge, sf)
-	{
-		funcName := this.getFuncName(A_ThisFunc)
-
-		stopwatch := Timer()
-		statBar := StatusBar()
-		
-		str := ""
-		idx := 0
-		realTotal := 0
-
-		inPath := FileHandler.Config("Paths", "TempCSV")
-		outPath := FileHandler.Config("Resources", funcName)
-		routineLogfile := Logger(FileHandler.Config("Paths", "RoutineLogs") . funcName . "\")
-		
-		csv := FileHandler(inPath, outPath, funcName)
-
-		merchants := FileHandler.CreateMerchantArray(FileHandler.Config("Functions", funcName))
-		accountIDs := DataHandler(FileHandler.Config("Resources", "AccountIDs"))
-		parseMap := DataHandler(outPath)
-		
-		this.logger.Append(funcName, "Started")
-		
-		stopwatch.StartTimer()
-		
-		win.FocusWindow(edge)
-
-		if not edge.TabTitleContains("Salesforce")
-			edge.NewTab()
-		
-		for m in merchants
-		{
-			Clippy.Shove("")
-			
-			idx := parseMap.Retrieve(m.wpmid).OrderIndex
-			realTotal := parseMap.DsLength//parsemap.Cols.length
-
-			statBar.Show("Merchant: " . A_Index . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal)
-
-			sfUpdated := parseMap.IsParsed(m.wpmid)
-
-			if sfUpdated
-				continue
-
-			urlExists := sf.HasURL(this.logger, m, accountIDs)
-			
-			if urlExists
-			{
-				edge.FocusURLBar()
-				edge.PasteURLAndGo(sf.FullURL)
-
-				Clippy.Shove("none")
-
-				sf.UpdateOpenDate(m.SalesforceDateFormat(m.openDate))
-				orderIndex := parseMap.Retrieve(m.wpmid).OrderIndex
-				parseMap.SetParsed(orderIndex)
-				
-				this.logger.Append(funcName, m.wpmid . " updated")
-
-				Sleep 1000
-			}
-			else
-			{
-				routineLogfile.Append(, m.wpmid . " does not exist on Salesforce")
-				continue
-			}
-			str := parseMap.DataStoreToFileString(csv.Scheme)
-			csv.StringToCSV(str)
-		}
-
-		stopwatch.StopTimer()
-
-		this.logger.Timer(merchants.length . " merchant account closed dates checked and/or updated.", stopwatch)
-
-		statBar.Reset()
-
-		body := "Total converted: " . idx . " of " . realTotal . "`r`nTime Elapsed: " .  stopwatch.ElapsedTime()
-		this.PrepareAndSendNotificationEmail(win, ol, funcName, stopwatch.ElapsedTime(), body)
-
-		MsgBox "Open dates updated"
-	}
-	
 	; Gets data from CAPS and puts it into email order template.
 	GenerateOrder(win, caps, ob)
 	{
@@ -941,32 +858,38 @@ class RoutineObject
 		this.Butcher()
 	}
 
-	PrepareAndSendNotificationEmail(win, ol, routineName, elapsedTime, customText?)
+	YesNoCancelBox(msg, title)
 	{
-		subject := "[ROUTINE COMPLETE] " . routineName .  " - " . Logger.GetFileDateTime()
-		body := routineName . " finished in " . elapsedTime
+		return MsgBox(msg, title, "YesNoCancel Icon? Default3")
+	}
+
+	PrepareAndSendNotificationEmail(ol, className, elapsedTime, customText?)
+	{
+		subject := "[ROUTINE COMPLETE] " . className .  " - " . Logger.GetFileDateTime()
+		body := className . " finished in " . elapsedTime
 
 		if IsSet(customText)
 			body := customText
 
-		win.FocusWindow(ol)
+		Windows.FocusWindow(ol)
 		ol.CreateNewEmail().To(FileHandler.Config("Fields", "MyEmail")).CC().Subject(subject).Body(body)
 		Sleep 1000
 		ol.SendEmail()
-		Logger.Append(routineName, "Email notification sent!")
+		Logger.Append(className, "Email notification sent!")
 	}
 }
 
-; Just pass in (funcName, scheme (if txt file), sf (child class of sf class, contains custom routine))
+; UpdateSalesforceFields is a RoutineObject that allows the user to update fields on Salesforce when it is given a custom Salesforce object. It uses that object to execute the updates on Salesforce via the Salesforce "UpdateFields" method.
 class UpdateSalesforceFields extends RoutineObject
 {
-	Initialize(className, apps, scheme)
+	scheme := Array()
+	Initialize(className, apps, scheme?)
 	{
-		this.win := apps.win
-		this.sf := apps.sf
+		this.bfu := apps.bfu ; bfu means Bookmark Field Updater. Its a class that updates bookmark fields, extended from SalesforceDB.
 		this.edge := apps.edge
 		this.ol := apps.ol
-		this.scheme := this.schemeFromObject(scheme)
+		if IsSet(scheme)
+			this.scheme := this.schemeFromObject(scheme)
 
 		this.className := className
 	}
@@ -983,20 +906,22 @@ class UpdateSalesforceFields extends RoutineObject
 
 	Do()
 	{
-		win := this.win
-		sf := this.sf
+		prompt := this.YesNoCancelBox("Would you like to send a notification email when routine is complete?", this.className)
+		
+		if prompt = "Cancel"
+			return
+		
+		bfu := this.bfu
 		edge := this.edge
 		ol := this.ol
-		
+
 		str := ""
 		idx := 0
 		realTotal := 0
 
 		inPath := FileHandler.Config("Paths", "TempCSV")
 		outPath := FileHandler.Config("Resources", this.className)
-		; routineLogfile := Logger(FileHandler.Config("Paths", "RoutineLogs") . this.className . "\")
 		rlfPath := FileHandler.Config("Paths", "RoutineLogs") . this.className . "\"
-		;MsgBox rlfPath
 		routineLogFile := Logger()
 
 		csv := FileHandler(inPath, outPath, this.className)
@@ -1009,7 +934,7 @@ class UpdateSalesforceFields extends RoutineObject
 		
 		Logger.Append(this.className, "Started")
 		
-		win.FocusWindow(edge)
+		Windows.FocusWindow(edge)
 
 		if not edge.TabTitleContains("Salesforce")
 			edge.NewTab()
@@ -1028,16 +953,16 @@ class UpdateSalesforceFields extends RoutineObject
 			if sfUpdated
 				continue
 
-			urlExists := sf.HasURL(m, accountIDs)
+			urlExists := bfu.HasURL(m, accountIDs)
 			
 			if urlExists
 			{
 				edge.FocusURLBar()
-				edge.PasteURLAndGo(sf.FullURL)
+				edge.PasteURLAndGo(bfu.FullURL)
 
 				Clippy.Shove("none")
 
-				sf.UpdateFields(m)
+				bfu.UpdateFields(m)
 				orderIndex := parseMap.Retrieve(m.wpmid).OrderIndex
 				parseMap.SetParsed(orderIndex)
 				
@@ -1060,8 +985,11 @@ class UpdateSalesforceFields extends RoutineObject
 
 		this.statBar.Reset()
 
-		body := "Total converted: " . idx . " of " . realTotal . "`r`nTime Elapsed: " .  this.process.ElapsedTime()
-		this.PrepareAndSendNotificationEmail(win, ol, this.className, this.process.ElapsedTime(), body)
+		if prompt = "Yes"
+		{
+			body := "Total converted: " . idx . " of " . realTotal . "`r`nTime Elapsed: " .  this.process.ElapsedTime()
+			this.PrepareAndSendNotificationEmail(ol, this.className, this.process.ElapsedTime(), body)
+		}
 
 		MsgBox "Open dates updated"
 	}

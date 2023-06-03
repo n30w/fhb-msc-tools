@@ -5,6 +5,34 @@
 
 class Windows
 {
+	static WinExists(app)
+	{
+		if WinExist(app.Ref)
+			return True
+		else
+			return False
+	}
+
+	static FocusWindow(app)
+	{
+		if Windows.WinExists(app)
+		{
+			WinActivate
+		}
+		else if WinWaitActive(app.Ref, , 5)
+		{
+			WinActivate app.Ref
+		}
+		else
+		{
+			if YesNoBox(app.Name . " is not running. Would you like to start it?") = "Yes"
+				app.Start()
+			else
+				MsgBox "Unable to start " . app.Name . ". Exiting routine..."
+				return
+		}
+	}
+
 	ProcessList := Array()
 	
 	__New(logger, processes*) ; append processes to ProcessList

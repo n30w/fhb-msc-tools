@@ -80,7 +80,7 @@ class DataHandler
 
 	Cols := Array()
 	
-	; create a store and keep it in memory
+	; BuildStore creates a store to keep in memory
 	BuildStore(path)
 	{
 		Loop read, path
@@ -112,19 +112,19 @@ class DataHandler
 		}
 	}
 	
-	; stores a key and value into LocalDataStore
+	; Store stores a key and value into LocalDataStore
 	Store(k ,v) => this.LocalDataStore.Set(k ,v)
 	
-	; retrieves value given key from LocalDataStore
+	; Retrieve returns a value given key from LocalDataStore
 	Retrieve(k) => this.LocalDataStore.Get(k)
 	
-	; updates if k exists in LocalDataStore
+	; Update updates if k exists in LocalDataStore
 	Update(k, v) => (this.LocalDataStore.Has(k) ? this.LocalDataStore[k] := v : "")
 	
-	; deletes a k from LocalDataStore
+	; Erase deletes a k from LocalDataStore
 	Erase(k) => this.LocalDataStore.Delete(k)
 	
-	; Returns true or false if a value is parsed or not.
+	; IsParsed returns true or false if a value is already parsed or not. "Parsed" in this context refers to a row's column value given from a routine's TSV or CSV file located in the "resources/routines" folder. This folder serves as a type of memory on disk, so that if the program reloads, it can pick up where it left off, in other words, it knows whether it has already parsed a value or not.
 	IsParsed(k)
 	{
 		p := False
@@ -141,18 +141,18 @@ class DataHandler
 		return false
 	}
 
-	; Sets a value in DataStore to Parsed, meaning it has been processed. By default, calling without v sets it to True.
+	; SetParsed sets a value in DataStore to Parsed, meaning it has been processed in some routine or workflow. By default, calling without v sets it to True.
 	SetParsed(k, v := true)
 	{
 		this.Retrieve(k).Parsed := ( v ? "TRUE" : "FALSE" )
 	}
 
-	; wipes all data in LocalDataStore
+	; ClearDataStore wipes all data in LocalDataStore.
 	ClearDataStore() => this.LocalDataStore.Clear()
 	
 	cb := Clippy()
 
-	; Turns the DataStore back into a comma separated string.
+	; DataStoreToFileString turns the DataStore back into a comma separated string.
 	DataStoreToFileString(scheme)
 	{
 		fileString := scheme . "`r`n"
@@ -182,7 +182,7 @@ class DataHandler
 		return fileString
 	}
 	
-	; Given a variadic parameter of fields, go through them and set their values.
+	; CopyFields receives a variadic parameter of fields, and goes through each item in it setting their respective values.
 	CopyFields(fields*)
 	{
 		this.cb.Clean()
@@ -267,15 +267,15 @@ class Clippy
 	SendEnter() => Send "{Enter}"
 }
 
-; generic Field value, can be for CAPS, browser, Excel, etc. Every window has a field.
+; Field is a generic field value, can be for CAPS, browser, Excel, etc. Every window has a field.
 class Field
-{
-	val := "" ; field's value, set to nothing on init
-	
-	__New(x, y)
+{	
+	; x and y values do not need to be set when instantiated.
+	__New(x := 0, y := 0, val := "")
 	{
 		this.X := x
 		this.Y := y
+		this.val := val
 	}
 }
 
@@ -534,9 +534,22 @@ class Merchant
 	closedDate := "none"
 	conversionDate := "none"
 
+	createJSParseString()
+	{
+		fields := Array(this.dba, this.wpmid, this.fdmid, this.chain, this.superChain, this.tin, this.dda, this.SalesforceDateFormat(this.openDate), this.SalesforceDateFormat(this.closedDate), this.SalesforceDateFormat(this.conversionDate))
+		headers := Array("dba", "wpmid", "fdmid", "chain", "superChain", "tin", "dda", "openDate", "closedDate", "conversionDate")
+		sep := ","
+		str := StrJoin(headers, sep) . "&" . StrJoin(fields, sep)
+
+		return str
+	}
+
 	; SalesforceDateFormat receives a date in the form of a string, then turns it into a date that is accepted by Salesforce fields.
 	SalesforceDateFormat(s)
 	{
+		if s = "none"
+			return s
+		
 		newFormat := ""
 
 		if SubStr(s, 1, 1) = 0 ; 0 in months place
