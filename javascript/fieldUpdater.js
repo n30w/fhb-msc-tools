@@ -1,6 +1,6 @@
 javascript: (function() {
 
-    const myTimeout = (fn, t = 300) => {
+    function myTimeout(fn, t = 300) {
         return new Promise((resolve) => {
             setTimeout(() => {
                 fn();
@@ -19,8 +19,8 @@ javascript: (function() {
         return document.evaluate(sel, document.body, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
     };
 
-    const buildXPath = (elm, prop, val) => {
-        return `//${elm}[@${prop}='${val}']`;
+    const buildXPath = (elmXPath, prop, val) => {
+        return `//${elmXPath}[@${prop}='${val}']`;
     };
 
     const buttonField = (prop, val) => {
@@ -40,7 +40,6 @@ javascript: (function() {
             await myTimeout(() => {
                 let selection = getSingleNode(buttonField(prop, val));
                 selection.click();
-                copyToClipboard("changed");
             });
         }
         return new Promise((resolve) => {
@@ -56,19 +55,6 @@ javascript: (function() {
             }
             resolve(x);
         });
-    };
-
-    const editFields = (edit, fn) => {
-        if (edit === false) {
-            return new Promise((resolve) => {
-                resolve(edit);
-            });
-        } else {
-            return new Promise((resolve) => {
-                fn();
-                resolve(edit);
-            });
-        }
     };
 
     /* This is from: https://stackoverflow.com/a/61511955/20087581 */
@@ -119,11 +105,6 @@ javascript: (function() {
     }
 
     async function main() {
-        console.log("start");
-
-        let inputString = ""; /* get clipboard string here */
-        let allEqual = true;
-        
         let accountName = new sfElm("Account Name");
         let wpmid = new sfElm("WP MID", "Merchant_Id__c");
         let fdmid = new sfElm("FD MID");
@@ -137,19 +118,20 @@ javascript: (function() {
 
         let fieldRef = buildFieldRefMap(accountName, wpmid, fdmid, chain, superChain, tin, dda, openDate, closedDate, conversionDate);
 
+        let inputString = ""; /* get clipboard string here */
+        let allEqual = true;
+
         await navigator.clipboard
             .readText()
             .then((clipText) => {
                 inputString = clipText;
             });
-        
-        console.log(inputString);
 
         let fieldValuesFromInputString = inputString.split("+")[0].split(",");
         let headerFieldsFromInputString = inputString.split("+")[1].split(",");
-        /* console.log(fieldValuesFromInputString); */
-        /* console.log(headerFieldsFromInputString); */
-
+        
+        console.log("start");
+        
         /* Check if any fields are not equal to any fields in the inputString given by AHK. */
         await myTimeout(() => {
             headerFieldsFromInputString.forEach(async function(val, i) {
@@ -163,36 +145,43 @@ javascript: (function() {
                     console.log(fr);
                 }
             });
-        }, 400);
+        }, 700);
 
-        /* Exit program if equal */
-        const exitPromise = await assertEqual(allEqual);
-        const editSF = await editFields(exitPromise, () => {
-            headerFieldsFromInputString.forEach(async function(val, i) {
-                fr = fieldRef.get(val);
-                if (fr.isEqual === false) {
-                    if (i == 0) { /* turn Salesforce into edit mode for fields. */
-                         /* await clickButton(exitPromise, "title", fr.btnTitle); */
-                        await myTimeout(() => {
-                            let selection = document.evaluate(buttonField("title", fr.btnTitle), document.body, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-                            selection.click();
-                            copyToClipboard("changed");
-                        });
-                    }
-                    /*let selection = getSingleNode(inputField(this.textInput));*/
-                    let selection = document.evaluate(inputField(fr.textInput), document.body, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-                    console.log("editing text " + selection);
-                    selection.value = fr.newValue;
-                    await this.setNewValue();
-                    return await myTimeout(() => {
-                        selection.dispatchEvent(new Event("change"));
-                    }, 500);
-                }
-            });
-        });
-        await clickButton(editSF, "name", "SaveEdit");
+        /* Edit HTML to add values */
+        try {
+            /* Exit program if equal */
+            const exitPromise = await assertEqual(allEqual);
+            /* arbitrary button selection, just needs to get Salesforce page into edit field mode*/
+            await clickButton(exitPromise, "title", "Edit Closed Date");
+            if (!exitPromise) {
+                await myTimeout(() => {
+                    headerFieldsFromInputString.forEach(async function(val) {
+                        fr = fieldRef.get(val);
+                        if (!fr.isEqual) {
+                            console.log(fr.textInput);
+                            let selection = getSingleNode(inputField(fr.textInput));
+                            console.log("editing text " + selection);
+                            selection.value = fr.newValue;
+                            selection.dispatchEvent(new Event("change"));
+                        }
+                    }, 700);
+                });
+
+                await myTimeout(() => {
+                    waitForElm("//button[@name='SaveEdit']").then((elm) => {
+                        myTimeout(() => {
+                            elm.click();
+                        }, 500);
+                        copyToClipboard("changed");
+                        console.log("change success");
+                    });
+                });
+            }
+        } catch(e) {
+            console.log(e);
+        }
         
-        console.log("finished");
+        console.log("end");
     }
 
     main();
