@@ -918,6 +918,7 @@ class UpdateSalesforceFields extends RoutineObject
 		str := ""
 		idx := 0
 		realTotal := 0
+		fieldsAlreadyUpdated := False
 
 		inPath := FileHandler.Config("Paths", "TempCSV")
 		outPath := FileHandler.Config("Resources", this.className)
@@ -962,17 +963,20 @@ class UpdateSalesforceFields extends RoutineObject
 
 				Clippy.Shove("none")
 
-				bfu.UpdateFields(m)
+				fieldsAlreadyUpdated := bfu.UpdateFields(m)
 				orderIndex := parseMap.Retrieve(m.wpmid).OrderIndex
 				parseMap.SetParsed(orderIndex)
 				
-				Logger.Append(this.className, m.wpmid . " updated")
+				if not fieldsAlreadyUpdated
+					Logger.Append(this.className, m.wpmid . " updated")
+				else
+					Logger.Append(this.className, m.wpmid .  " already up to date")
 
 				Sleep 1000
 			}
 			else
 			{
-				routineLogfile.Append(, m.wpmid . " does not exist on Salesforce")
+				routineLogfile.Append(, m.wpmid . " does not have an existing account on Salesforce")
 				continue
 			}
 			str := parseMap.DataStoreToFileString(csv.Scheme)

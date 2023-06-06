@@ -71,7 +71,7 @@ Logger.Append(, "Session started! Time to make money...")
 	F5:: Windows.FocusWindow(ob)
 	^F6:: ;routine.AddConversionDateToSalesforce(win, edge, sf)
 	{
-		bfu := BookmarkletFieldUpdater("ClosDate")
+		bfu := BookmarkletFieldUpdater()
 		sfRoutine := UpdateSalesforceFields()
 		apps := {
 			sf: bfu,
@@ -83,14 +83,14 @@ Logger.Append(, "Session started! Time to make money...")
 	}
 	^+F6::
 	{
-		bfu := BookmarkFieldUpdater("OpenDate")
+		bfu := FieldUpdaterBookmarklet()
 		sfRoutine := UpdateSalesforceFields()
 		apps := {
 			bfu: bfu, 
 			edge: edge, 
 			ol: ol
 		}
-		sfRoutine.Initialize("SFUpdateOpenDate", apps)
+		sfRoutine.Initialize("SFUpdate1", apps)
 		sfRoutine.Do()
 	}
 	^F7:: routine.PrepareClosureFormEmail(win, caps, ol)

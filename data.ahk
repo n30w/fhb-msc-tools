@@ -534,13 +534,11 @@ class Merchant
 	closedDate := "none"
 	conversionDate := "none"
 
-	createJSParseString()
+	; createJSParseString assembles a string that the fieldUpdater.js code consumes.
+	createJSParseString(headers, values)
 	{
-		fields := Array(this.dba, this.wpmid, this.fdmid, this.chain, this.superChain, this.tin, this.dda, this.SalesforceDateFormat(this.openDate), this.SalesforceDateFormat(this.closedDate), this.SalesforceDateFormat(this.conversionDate))
-		headers := Array("dba", "wpmid", "fdmid", "chain", "superChain", "tin", "dda", "openDate", "closedDate", "conversionDate")
 		sep := ","
-		str := StrJoin(headers, sep) . "&" . StrJoin(fields, sep)
-
+		str := StrJoin(values, sep) . "+" . StrJoin(headers, sep)
 		return str
 	}
 

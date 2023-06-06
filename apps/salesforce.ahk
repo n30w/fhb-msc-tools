@@ -195,35 +195,26 @@ class SalesforceDB extends Application
 	}
 }
 
-class BookmarkletFieldUpdater extends SalesforceDB
+class FieldUpdaterBookmarklet extends SalesforceDB
 {
-	; To traverse the bookmark bar, the user can use the arrow keys and the "enter" key to go to sites or run bookmarklets. BookmarkBarFolderIndexes is a map that contains the indexes of the Salesforce Update Fields folders on the bookmark bar that contain my custom bookmarklet Javascript. The corresponding index "i" is used in the "Send "{Right i}"" function to traverse the bookmark bar. Note that the index of each map item matters, and should correspond to the same order as the one on Edge.
-	BookmarkBarFolderIndexes := Map(
-		"FDMID", "0",
-		"ConvDate", "1",
-		"ClosDate", "2",
-		"OpenDate", "3"
-	)
-
-	__New(bookmarkBarFolderName := "FDMID")
-	{
-		this.bookmarkBarFolderName := bookmarkBarFolderName
-	}
-
 	UpdateFields(m)
 	{
-		d := m.createJSParseString()
-		
-		accessClosedDate()
+		; Assemble the string to be delivered to Javascript via clipboard.
+		headers := Array()
+		values := Array()
+
+		for f, v in m.OwnProps()
 		{
-			Send "{Right " . this.bookmarkBarFolderNames[this.bookmarkBarFolderName] . "}"
-			Sleep 200
-			Send "{Enter}"
-			Sleep 200
+			if v != "none"
+			{
+				headers.Push(f)
+				values.Push(v)
+			}
 		}
 
+		jsParseString := m.createJSParseString(headers, values)
+		
 		this.altShiftB()
-		accessClosedDate()
 		Sleep 400
 		Send "{Enter}"
 		Sleep 100
@@ -232,7 +223,7 @@ class BookmarkletFieldUpdater extends SalesforceDB
 	 	i := 10
 
 	 	; wait for page to load and check clipboard, or else it times out
-	 	while (A_Clipboard = "none") and (t < 15000)
+	 	while (A_Clipboard = jsParseString) and (t < 20000)
 	 	{
 	 		; wait
 	 		Sleep i
@@ -241,35 +232,15 @@ class BookmarkletFieldUpdater extends SalesforceDB
 
 		if t > 15000
 	 		throw Error("Can't access webpage", -1)
-		
-		;d := m.SalesforceDateFormat(m.openDate)
-		
-		if (A_Clipboard != d) or (A_Clipboard = "null")
-		{	
-			; ClickEdit
-			this.altShiftB()
-			accessClosedDate()
-			Send "{Down 1}"
-			Sleep 400
-			Send "{Enter}"
-			Sleep 1400
 
-			Clippy.Shove(d)
+		if A_Clipboard = "equal"
+		{
+			return False
+		}
 
-			; ChangeDate
-			this.altShiftB()
-			accessClosedDate()
-			Send "{Down 2}"
-			Sleep 400
-			Send "{Enter}"
-			Sleep 1100
-
-			; SaveEdit
-			this.altShiftB()
-			Send "{Right 4}"
-			Sleep 400
-			Send "{Enter}"
-			Sleep 1000
+		if A_Clipboard = "changed"
+		{
+			return True
 		}
 	}
 }
