@@ -7,7 +7,7 @@ javascript: (function() {
                 resolve("done timing out");
             }, t);
         });
-    };
+    }
 
     const copyToClipboard = str => {
         if (navigator && navigator.clipboard && navigator.clipboard.writeText)
@@ -121,67 +121,79 @@ javascript: (function() {
         let inputString = ""; /* get clipboard string here */
         let allEqual = true;
 
+        let fieldValuesFromInputString;
+        let headerFieldsFromInputString;
+
+        console.log("start");
+
         await navigator.clipboard
             .readText()
             .then((clipText) => {
                 inputString = clipText;
             });
-
-        let fieldValuesFromInputString = inputString.split("+")[0].split(",");
-        let headerFieldsFromInputString = inputString.split("+")[1].split(",");
+        fieldValuesFromInputString = inputString.split("+")[0].split(",");
+        headerFieldsFromInputString = inputString.split("+")[1].split(",");
+        console.log(fieldValuesFromInputString);
+        console.log(headerFieldsFromInputString);
         
-        console.log("start");
+        const elm = await waitForElm("//records-record-layout-item[@field-label='Closed Date']");
         
         /* Check if any fields are not equal to any fields in the inputString given by AHK. */
         await myTimeout(() => {
             headerFieldsFromInputString.forEach(async function(val, i) {
                 let fr = fieldRef.get(val);
                 let elm1 = await waitForElm(recordLayoutItemField(fr.propFieldLabel));
-                fr.value = elm1.childNodes[0].value;
+                let elm1Val = elm1.childNodes[0].value;
+                fr.value = elm1Val;
                 if (fieldValuesFromInputString[i] !== fr.value) {
                     allEqual = false;
                     fr.isEqual = false;
                     fr.newValue = fieldValuesFromInputString[i];
+                    console.log("ORIGINAL: " + elm1Val + "\nUPDATED: " + fr.newValue);
                     console.log(fr);
                 }
             });
         }, 700);
 
-        /* Edit HTML to add values */
-        try {
-            /* Exit program if equal */
-            const exitPromise = await assertEqual(allEqual);
-            /* arbitrary button selection, just needs to get Salesforce page into edit field mode*/
-            await clickButton(exitPromise, "title", "Edit Closed Date");
-            if (!exitPromise) {
-                await myTimeout(() => {
-                    headerFieldsFromInputString.forEach(async function(val) {
-                        fr = fieldRef.get(val);
-                        if (!fr.isEqual) {
-                            console.log(fr.textInput);
-                            let selection = getSingleNode(inputField(fr.textInput));
-                            console.log("editing text " + selection);
-                            selection.value = fr.newValue;
-                            selection.dispatchEvent(new Event("change"));
-                        }
-                    }, 700);
-                });
-
-                await myTimeout(() => {
-                    waitForElm("//button[@name='SaveEdit']").then((elm) => {
-                        myTimeout(() => {
-                            elm.click();
-                        }, 500);
-                        copyToClipboard("changed");
-                        console.log("change success");
-                    });
-                });
-            }
-        } catch(e) {
-            console.log(e);
-        }
+        await myTimeout(async () => {
+            /* Edit HTML to add values */
+            try {
+                /* Exit program if equal */
+                const exitPromise = await assertEqual(allEqual);
+                /* arbitrary button selection, just needs to get Salesforce page into edit field mode*/
+                await clickButton(exitPromise, "title", "Edit Closed Date");
+                await myTimeout(async () => {
+                    if (!exitPromise) {
+                        await myTimeout(() => {
+                            let fr;
+                            headerFieldsFromInputString.forEach(async function(val) {
+                                fr = fieldRef.get(val);
+                                if (!fr.isEqual) {
+                                    console.log(fr.textInput);
+                                    let selection = getSingleNode(inputField(fr.textInput));
+                                    console.log("editing text " + selection);
+                                    selection.value = fr.newValue;
+                                    selection.dispatchEvent(new Event("change"));
+                                }
+                            }, 700);
+                        });
         
-        console.log("end");
+                        await myTimeout(() => {
+                            waitForElm("//button[@name='SaveEdit']").then((elm) => {
+                                myTimeout(() => {
+                                    elm.click();
+                                }, 1200);
+                                copyToClipboard("changed");
+                                console.log("change success");
+                            });
+                        });
+                    }
+                    console.log("end");
+                });
+            } catch(e) {
+                console.log(e);
+            }
+        }, 1000);
     }
 
     main();
