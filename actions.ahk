@@ -17,11 +17,10 @@
 StrJoin(arr, sep)
 {
 	str := ""
-	for a in arr
+	l := arr.Length
+	for v in arr
 	{
-		str .= a
-		if A_Index < arr.length
-			str .= sep
+		str .= v . ( A_Index < l ? sep : "" )
 	}
 	return str
 }

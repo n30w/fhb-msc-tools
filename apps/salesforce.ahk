@@ -197,41 +197,31 @@ class SalesforceDB extends Application
 
 class FieldUpdaterBookmarklet extends SalesforceDB
 {
-	UpdateFields(m)
+	UpdateFields(jsParseString)
 	{
-		; Assemble the string to be delivered to Javascript via clipboard.
-		headers := Array()
-		values := Array()
-
-		for f, v in m.OwnProps()
-		{
-			if v != "none"
-			{
-				headers.Push(f)
-				values.Push(v)
-			}
-		}
-
-		jsParseString := m.createJSParseString(headers, values)
+		Clippy.Shove(jsParseString)
 		
 		this.altShiftB()
-		Sleep 400
+		Sleep 500
 		Send "{Enter}"
-		Sleep 100
+		Sleep 500
 
 		t := 0
 	 	i := 10
+		tMax := 20000
 
 	 	; wait for page to load and check clipboard, or else it times out
-	 	while (A_Clipboard = jsParseString) and (t < 20000)
+	 	while (A_Clipboard = jsParseString) and (t < tMax)
 	 	{
 	 		; wait
 	 		Sleep i
 	 		t += i
 	 	}
 
-		if t > 15000
+		if t > tMax
 	 		throw Error("Can't access webpage", -1)
+		
+		Sleep 1000
 
 		if A_Clipboard = "equal"
 		{

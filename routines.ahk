@@ -121,198 +121,6 @@ class Routines
 		return this
 	}
 
-	; From a TSV, TXT, or CSV file, add FDMID to Salesforce if it doesn't exist.
-	AddFDMIDToSalesforce(win, edge, sf)
-	{
-		this.data.cb.Clean()
-		merchants := FileHandler.TextToMerchantArray("addfdmidtosf.txt")
-		au := ""
-		fdmid := ""
-		
-		win.FocusWindow(edge)
-		if not edge.TabTitleContains("Salesforce")
-			edge.NewTab()
-		
-		for m in merchants
-		{
-			try
-			{
-				au := sf.AccountURL(DataHandler.Retrieve(m.wpmid).AccountID)
-			}
-			catch
-			{
-				this.logger.Append(this.ConvertMIDToCaseID.Name, "ERROR: Unable to retrieve merchant AccountID => " . m.wpmid . " does not exist in DataStore")
-				continue
-			}
-			
-			fdmid := DataHandler.Retrieve(m.wpmid).FDMID
-
-			edge.FocusURLBar()
-			Clippy.Shove(au)
-			Send "^v"
-			Sleep 100
-			Send "{Enter}"
-			this.data.cb.Clean()
-			Sleep 4000
-			sf.UpdateFDMID(fdmid)
-			Sleep 1700
-		}
-
-		MsgBox "FDMIDs all have been added to Salesforce"
-	}
-
-	; From a TSV, TXT, or CSV file, update every FDMID conversion date on Salesforce.
-	AddConversionDateToSalesforce(win, edge, sf)
-	{
-		funcName := this.getFuncName(A_ThisFunc)
-
-		stopwatch := Timer()
-		statBar := StatusBar()
-		
-		str := ""
-		inPath := FileHandler.Config("Paths", "TempCSV")
-		outPath := FileHandler.Config("Resources", funcName)
-		routineLogfile := Logger(FileHandler.Config("Paths", "RoutineLogs") . funcName . "\")
-		
-		csv := FileHandler(inPath, outPath, funcName)
-
-		merchants := FileHandler.CreateMerchantArray("Functions", funcName)
-		accountIDs := DataHandler(FileHandler.Config("Resources", "AccountIDs"))
-		parseMap := DataHandler(outPath)
-		
-		this.logger.Append(funcName, "Started")
-		
-		stopwatch.StartTimer()
-		
-		win.FocusWindow(edge)
-
-		if not edge.TabTitleContains("Salesforce")
-			edge.NewTab()
-		
-		for m in merchants
-		{
-			this.data.cb.Clean()
-
-			statBar.Show("Merchant: " . A_Index . "/" . merchants.length . "`r`n" . "Total: " . parseMap.Retrieve(m.wpmid).OrderIndex . "/" . parseMap.DsLength//parsemap.Cols.length)
-
-			sfUpdated := parseMap.IsParsed(m.wpmid)
-
-			if sfUpdated
-				continue
-
-			urlExists := sf.HasURL(this.logger, m, accountIDs)
-			
-			if urlExists
-			{
-				edge.FocusURLBar()
-				edge.PasteURLAndGo(sf.FullURL)
-
-				Clippy.Shove("none")
-
-				sf.UpdateConversionDate(m.SalesforceDateFormat(m.conversionDate))
-				orderIndex := parseMap.Retrieve(m.wpmid).OrderIndex
-				parseMap.SetParsed(orderIndex)
-				
-				this.logger.Append(funcName, m.wpmid . " updated")
-
-				Sleep 2000
-			}
-			else
-			{
-				routineLogfile.Append(, m.wpmid . " does not exist on Salesforce")
-				continue
-			}
-			str := parseMap.DataStoreToFileString(csv.Scheme)
-			csv.StringToCSV(str)
-		}
-
-		stopwatch.StopTimer()
-
-		this.logger.Timer(merchants.length . " merchant account closed dates checked and/or updated.", stopwatch)
-
-		statBar.Reset()
-
-		this.PrepareAndSendNotificationEmail(win, ol, funcName, stopwatch.ElapsedTime())
-
-		MsgBox "Conversion dates updated"
-	}
-
-	; From a TSV, TXT, or CSV file, update every account's closed date on Salesforce.
-	AddClosedDateToSalesforce(win, edge, sf)
-	{
-		funcName := this.getFuncName(A_ThisFunc)
-
-		stopwatch := Timer()
-		statBar := StatusBar()
-		
-		str := ""
-		inPath := FileHandler.Config("Paths", "TempCSV")
-		outPath := FileHandler.Config("Resources", funcName)
-		routineLogfile := Logger(FileHandler.Config("Paths", "RoutineLogs") . funcName . "\")
-		
-		csv := FileHandler(inPath, outPath, funcName)
-
-		merchants := FileHandler.CreateMerchantArray(FileHandler.Config("Functions", funcName), "wpmid", "closedDate")
-		accountIDs := DataHandler(FileHandler.Config("Resources", "AccountIDs"))
-		parseMap := DataHandler(outPath)
-		
-		this.logger.Append(funcName, "Started")
-		
-		stopwatch.StartTimer()
-		
-		win.FocusWindow(edge)
-
-		if not edge.TabTitleContains("Salesforce")
-			edge.NewTab()
-		
-		for m in merchants
-		{
-			this.data.cb.Clean()
-
-			statBar.Show("Merchant: " . A_Index . "/" . merchants.length . "`r`n" . "Total: " . parseMap.Retrieve(m.wpmid).OrderIndex . "/" . parseMap.DsLength//parsemap.Cols.length)
-
-			sfUpdated := parseMap.IsParsed(m.wpmid)
-
-			if sfUpdated
-				continue
-
-			urlExists := sf.HasURL(this.logger, m, accountIDs)
-			
-			if urlExists
-			{
-				edge.FocusURLBar()
-				edge.PasteURLAndGo(sf.FullURL)
-
-				Clippy.Shove("none")
-
-				sf.UpdateClosedDate(m.SalesforceDateFormat(m.closedDate))
-				orderIndex := parseMap.Retrieve(m.wpmid).OrderIndex
-				parseMap.SetParsed(orderIndex)
-				
-				this.logger.Append(funcName, m.wpmid . " updated")
-
-				Sleep 2000
-			}
-			else
-			{
-				routineLogfile.Append(, m.wpmid . " does not exist on Salesforce")
-				continue
-			}
-			str := parseMap.DataStoreToFileString(csv.Scheme)
-			csv.StringToCSV(str)
-		}
-
-		stopwatch.StopTimer()
-
-		this.logger.Timer(merchants.length . " merchant account closed dates checked and/or updated.", stopwatch)
-
-		statBar.Reset()
-
-		this.PrepareAndSendNotificationEmail(win, ol, funcName, stopwatch.ElapsedTime())
-
-		MsgBox "Closed dates updated"
-	}
-
 	; Gets data from CAPS and puts it into email order template.
 	GenerateOrder(win, caps, ob)
 	{
@@ -435,9 +243,22 @@ class Routines
 		accountNames := DataHandler(FileHandler.Config("Resources", "AccountNames"))
 		outFile := Format(this.fileOps.Config("Paths", "RoutineLogs") . "ExportPDFSToAudit-{1}.txt", this.logger.getFileDateTime())
 		LoadingZone := this.fileOps.Config("Paths", "IOOutputPath") . "auditing\"
-		merchants := FileHandler.TextToMerchantArray("midtopdf.txt")
+		merchants := FileHandler.CreateMerchantArray("midtopdf.txt", "wpmid", "fdmid", "dba")
 
 		funcName := this.getFuncName(A_ThisFunc)
+
+		exportCAPS := FileHandler.Config("ExportPDFsToAudit", "ExportCAPS")
+		exportFDMS := FileHandler.Config("ExportPDFsToAudit", "ExportFDMS")
+
+		if exportCAPS = "true"
+			exportCAPS := true
+		else
+			exportCAPS := false
+		
+		if exportFDMS := "true"
+			exportFDMS := true
+		else
+			exportFDMS := false
 
 		this.logger.append(funcName, "Starting export...")		
 		
@@ -473,7 +294,7 @@ class Routines
 			
 			; If CAPS fee doesn't exist, access CAPS and create pdf.
 			CAPSFeePDFDoesNotExist := !(FileExist(MerchantDir . CAPSPDFName . ".pdf"))
-			if CapsFeePDFDoesNotExist
+			if CapsFeePDFDoesNotExist and exportCAPS
 			{
 				Clippy.Shove(merchant.wpmid)
 				win.FocusWindow(caps)
@@ -492,12 +313,12 @@ class Routines
 			
 			; Generate PDF from Account Fee code listing document.
 			FDMIDFeePDFDoesNotExist := !(FileExist(MerchantDir . FDMIDPDFName . ".pdf"))
-			if FDMIDFeePDFDoesNotExist
+			if FDMIDFeePDFDoesNotExist and exportFDMS
 			{
 				noteName := merchant.wpmid . " " . merchant.fdmid . " has no FDMID listed"
 				if not FileExist(MerchantDir . noteName . ".txt")
 				{
-					win.FocusWindow(excel)
+					;win.FocusWindow(excel)
 					excel.FilterColumnMacro(merchant.fdmid)
 					
 					; "`r`n" is a value returned from the Excel Macro
@@ -885,7 +706,7 @@ class UpdateSalesforceFields extends RoutineObject
 	scheme := Array()
 	Initialize(className, apps, scheme?)
 	{
-		this.bfu := apps.bfu ; bfu means Bookmark Field Updater. Its a class that updates bookmark fields, extended from SalesforceDB.
+		this.fub := apps.fub ; fub means Bookmark Field Updater. Its a class that updates bookmark fields, extended from SalesforceDB.
 		this.edge := apps.edge
 		this.ol := apps.ol
 		if IsSet(scheme)
@@ -911,7 +732,7 @@ class UpdateSalesforceFields extends RoutineObject
 		if prompt = "Cancel"
 			return
 		
-		bfu := this.bfu
+		fub := this.fub
 		edge := this.edge
 		ol := this.ol
 
@@ -922,8 +743,7 @@ class UpdateSalesforceFields extends RoutineObject
 
 		inPath := FileHandler.Config("Paths", "TempCSV")
 		outPath := FileHandler.Config("Resources", this.className)
-		rlfPath := FileHandler.Config("Paths", "RoutineLogs") . this.className . "\"
-		routineLogFile := Logger()
+		rlf := Logger()
 
 		csv := FileHandler(inPath, outPath, this.className)
 
@@ -940,30 +760,48 @@ class UpdateSalesforceFields extends RoutineObject
 		if not edge.TabTitleContains("Salesforce")
 			edge.NewTab()
 		
-		for m in merchants
+		merchantLength := merchants.length
+		totalParsed := 0
+		sessionBatchAmount := Integer(FileHandler.Config("UpdateSalesforceFields", "sessionBatchAmount"))
+		totalComplete := 0
+
+		while (totalParsed <= merchantLength) and (totalComplete <= sessionBatchAmount)
 		{
+			m := merchants[A_Index]
+			
 			Clippy.Shove("")
 			
 			idx := parseMap.Retrieve(m.wpmid).OrderIndex
 			realTotal := parseMap.DsLength//parsemap.Cols.length
 
-			this.statBar.Show("Merchant: " . A_Index . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal)
-
+			this.statBar.Show("Merchant: " . A_Index . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Session Batch: " . totalComplete . "/" . sessionBatchAmount)
+			
 			sfUpdated := parseMap.IsParsed(m.wpmid)
 
 			if sfUpdated
+			{
+				totalParsed += 1
 				continue
+			}
 
-			urlExists := bfu.HasURL(m, accountIDs)
+			urlExists := fub.HasURL(m, accountIDs)
 			
 			if urlExists
 			{
 				edge.FocusURLBar()
-				edge.PasteURLAndGo(bfu.FullURL)
+				edge.PasteURLAndGo(fub.FullURL)
+
+				Sleep 500
 
 				Clippy.Shove("none")
 
-				fieldsAlreadyUpdated := bfu.UpdateFields(m)
+				jsParseString := m.CreateJSParseString(",", "+")
+
+				this.statBar.Show("Merchant: " . A_Index . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString)
+				
+				; Updates the fields, if there is a need to do that.
+				fieldsAlreadyUpdated := fub.UpdateFields(jsParseString)
+
 				orderIndex := parseMap.Retrieve(m.wpmid).OrderIndex
 				parseMap.SetParsed(orderIndex)
 				
@@ -976,22 +814,35 @@ class UpdateSalesforceFields extends RoutineObject
 			}
 			else
 			{
-				routineLogfile.Append(, m.wpmid . " does not have an existing account on Salesforce")
+				rlf.Append(, m.wpmid . " does not have an existing account on Salesforce")
 				continue
 			}
+
 			str := parseMap.DataStoreToFileString(csv.Scheme)
 			csv.StringToCSV(str)
+
+			totalParsed += 1
+			totalComplete += 1
 		}
 
 		this.Stop()
 
-		Logger.Timer(merchants.length . " merchant account closed dates checked and/or updated.", this.process)
+		Logger.Timer(totalComplete . " merchant accounts updated on Salesforce", this.process)
 
 		this.statBar.Reset()
 
 		if prompt = "Yes"
 		{
-			body := "Total converted: " . idx . " of " . realTotal . "`r`nTime Elapsed: " .  this.process.ElapsedTime()
+			body := ""
+			msgLines := Array(
+				"Total Parsed: " . idx . " of " . realTotal,
+				"Batch Size: " . sessionBatchAmount,
+				"Time Elapsed: " .  this.process.ElapsedTime()
+			)
+			for l in msgLines
+			{
+				body .= l . (A_Index = msgLines.length ? "" : "`r`n")
+			}
 			this.PrepareAndSendNotificationEmail(ol, this.className, this.process.ElapsedTime(), body)
 		}
 

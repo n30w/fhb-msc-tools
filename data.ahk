@@ -147,6 +147,15 @@ class DataHandler
 		this.Retrieve(k).Parsed := ( v ? "TRUE" : "FALSE" )
 	}
 
+	; ResetParsed changes all TRUE values to FALSE in the parse map.
+	SetAllParsedValues(v := false)
+	{
+		for k in this.LocalDataStore
+		{
+			this.SetParsed(k, v)
+		}
+	}
+
 	; ClearDataStore wipes all data in LocalDataStore.
 	ClearDataStore() => this.LocalDataStore.Clear()
 	
@@ -173,7 +182,7 @@ class DataHandler
 					else if A_Index = this.Cols.length
 						v := orderIdx . (lineNumber = fileLen ? "" : "`r`n" )
 					else
-						v := this.Retrieve(String(orderIdx)).WPMID . ","
+						v := this.Retrieve(String(orderIdx)).wpmid . ","
 					lineString .= v
 				}
 			}
@@ -534,12 +543,25 @@ class Merchant
 	closedDate := "none"
 	conversionDate := "none"
 
-	; createJSParseString assembles a string that the fieldUpdater.js code consumes.
-	createJSParseString(headers, values)
+	; CreateJSParseString assembles a string that the fieldUpdater.js code consumes. "sep" is what separates values. "chain" is what joins together two arrays
+	CreateJSParseString(sep, link)
 	{
-		sep := ","
-		str := StrJoin(values, sep) . "+" . StrJoin(headers, sep)
-		return str
+		; Assemble the string to be delivered to Javascript via clipboard.
+		headers := Array()
+		values := Array()
+
+		for f, v in this.OwnProps()
+		{
+			if f = "scheme"
+				continue
+			if v != "none"
+			{
+				headers.Push(f)
+				values.Push(( SubStr(f, -4) = "Date" ? this.SalesforceDateFormat(v) : v))
+			}
+		}
+
+		return StrJoin(values, sep) . link . StrJoin(headers, sep)
 	}
 
 	; SalesforceDateFormat receives a date in the form of a string, then turns it into a date that is accepted by Salesforce fields.

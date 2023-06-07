@@ -66,40 +66,31 @@ Logger.Append(, "Session started! Time to make money...")
 ; Hotkeys
 {	
 	F3::routine.ConvertMIDToCaseID()
+	
 	F4:: routine.ViewAuditFolder(win, caps, edge, sf, ps)
 	^F4:: routine.GetSalesforceConversionCase(win, edge, sf).OpenAuditFolder(win, caps, edge, sf, ps).ViewAuditPDFs(win, aa)
+	
 	F5:: Windows.FocusWindow(ob)
-	^F6:: ;routine.AddConversionDateToSalesforce(win, edge, sf)
-	{
-		bfu := BookmarkletFieldUpdater()
-		sfRoutine := UpdateSalesforceFields()
-		apps := {
-			sf: bfu,
-			edge: edge,
-			ol: ol
-		}
-		sfRoutine.Initialize("SFUpdateClosedDate", apps)
-		sfRoutine.Do()
-	}
+	
 	^+F6::
 	{
-		bfu := FieldUpdaterBookmarklet()
-		sfRoutine := UpdateSalesforceFields()
-		apps := {
-			bfu: bfu, 
-			edge: edge, 
-			ol: ol
-		}
-		sfRoutine.Initialize("SFUpdate1", apps)
-		sfRoutine.Do()
+		fub := FieldUpdaterBookmarklet()
+		newRoutine := UpdateSalesforceFields()
+		newRoutine.Initialize("SFUpdate1", apps := {fub: fub, edge: edge, ol: ol})
+		newRoutine.Do()
 	}
+	
 	^F7:: routine.PrepareClosureFormEmail(win, caps, ol)
 	^+F7:: routine.PrepareConversionEmail(win, caps, ol)
+	
 	F8:: routine.GetCAPSAccount(win, caps)
 	^F8:: routine.GetSalesforceConversionCase(win, edge, sf)
 	^+F8:: routine.GetCAPSAccount(win, caps).GetSalesforceAccount(win, edge, sf)
+	
 	F9:: routine.GenerateOrder(win, caps, ob)
+	
 	F10:: routine.DataStoreQuickLook()
+	
 	^F11:: routine.ExportPDFsToAudit(win, caps, excel)
 	F11:: caps.Start()
 }
