@@ -114,7 +114,7 @@ javascript: (function() {
         let chain = new sfElm("WP Chain ID", "Chain_ID__c");
         let superChain = new sfElm("WP Super Chain ID");
         let dda = new sfElm("DDA");
-        let tin = new sfElm("TIN");
+        let tin = new sfElm("TIN #", "TIN__c");
 
         let fieldRef = buildFieldRefMap(accountName, wpmid, fdmid, chain, superChain, tin, dda, openDate, closedDate, conversionDate);
 
