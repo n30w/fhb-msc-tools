@@ -9,6 +9,15 @@ javascript: (function() {
         });
     }
 
+    /** Returns a value from a timeout */
+    function myTimeoutVal(v, t = 300) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve(v);
+            }, t);
+        });
+    }
+
     const copyToClipboard = str => {
         if (navigator && navigator.clipboard && navigator.clipboard.writeText)
             return navigator.clipboard.writeText(str);
@@ -124,36 +133,42 @@ javascript: (function() {
         let fieldValuesFromInputString;
         let headerFieldsFromInputString;
 
-        console.log("start");
+        console.log("=== START ===");
 
-        await navigator.clipboard
+        /*await myTimeout(() => {
+            console.log("Waiting for DOM focus...");
+        }, 400);*/
+        
+        const elm = await waitForElm("//records-record-layout-item[@field-label='Closed Date']");
+
+        navigator.clipboard
             .readText()
             .then((clipText) => {
                 inputString = clipText;
+                console.log("RECEIVED: " + clipText);
+                fieldValuesFromInputString = inputString.split("+")[0].split(",");
+                headerFieldsFromInputString = inputString.split("+")[1].split(",");
+                console.log("FIELDS: " + fieldValuesFromInputString);
+                console.log("HEADERS: " + headerFieldsFromInputString);
             });
-        fieldValuesFromInputString = inputString.split("+")[0].split(",");
-        headerFieldsFromInputString = inputString.split("+")[1].split(",");
-        console.log(fieldValuesFromInputString);
-        console.log(headerFieldsFromInputString);
         
-        const elm = await waitForElm("//records-record-layout-item[@field-label='Closed Date']");
-        
+        /** Wait for arbitrary field to load */
+
         /* Check if any fields are not equal to any fields in the inputString given by AHK. */
         await myTimeout(() => {
             headerFieldsFromInputString.forEach(async function(val, i) {
                 let fr = fieldRef.get(val);
                 let elm1 = await waitForElm(recordLayoutItemField(fr.propFieldLabel));
-                let elm1Val = elm1.childNodes[0].value;
-                fr.value = elm1Val;
-                if (fieldValuesFromInputString[i] !== fr.value) {
+                fr.value = await myTimeoutVal(elm1.childNodes[0].value);
+                if (fieldValuesFromInputString[i] !== fr.value && fieldValuesFromInputString[i] !== "none") {
                     allEqual = false;
                     fr.isEqual = false;
                     fr.newValue = fieldValuesFromInputString[i];
-                    console.log("ORIGINAL: " + elm1Val + "\nUPDATED: " + fr.newValue);
-                    console.log(fr);
+                    console.log("INEQUALITY FOUND: " + val + " (" + fr.value + " => " + fr.newValue + ")");
                 }
+
             });
-        }, 700);
+        }, 300);
 
         await myTimeout(async () => {
             /* Edit HTML to add values */
@@ -169,9 +184,8 @@ javascript: (function() {
                             headerFieldsFromInputString.forEach(async function(val) {
                                 fr = fieldRef.get(val);
                                 if (!fr.isEqual) {
-                                    console.log(fr.textInput);
                                     let selection = getSingleNode(inputField(fr.textInput));
-                                    console.log("editing text " + selection);
+                                    console.log("EDITING: " + fr.textInput);
                                     selection.value = fr.newValue;
                                     selection.dispatchEvent(new Event("change"));
                                 }
@@ -184,11 +198,11 @@ javascript: (function() {
                                     elm.click();
                                 }, 1200);
                                 copyToClipboard("changed");
-                                console.log("change success");
+                                console.log("CHANGE SUCCESS");
                             });
                         });
                     }
-                    console.log("end");
+                    console.log("=== COMPLETE ===");
                 });
             } catch(e) {
                 console.log(e);
