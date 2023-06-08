@@ -760,22 +760,26 @@ class UpdateSalesforceFields extends RoutineObject
 		if not edge.TabTitleContains("Salesforce")
 			edge.NewTab()
 		
-		merchantLength := merchants.length
-		totalParsed := 0
-		sessionBatchAmount := Integer(FileHandler.Config("UpdateSalesforceFields", "sessionBatchAmount"))
+		fieldsAlreadyUpdated := "START"
+		jsParseString := "START"
+		totalParsed := 1
 		totalComplete := 0
+		merchantLength := merchants.length
+		sessionBatchAmount := Integer(FileHandler.Config("UpdateSalesforceFields", "sessionBatchAmount"))
+
+		tally := Map("INACCESSIBLE", 0, "CHANGED", 0, "EQUAL", 0)
 
 		while (totalParsed <= merchantLength) and (totalComplete <= sessionBatchAmount)
 		{
-			m := merchants[A_Index]
+			m := merchants[totalParsed]
 			
 			Clippy.Shove("")
 			
 			idx := parseMap.Retrieve(m.wpmid).OrderIndex
 			realTotal := parseMap.DsLength//parsemap.Cols.length
-
-			this.statBar.Show("Merchant: " . A_Index . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Session Batch: " . totalComplete . "/" . sessionBatchAmount)
 			
+			this.statBar.Show("Merchant: " . A_Index . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString . "`r`n" . "Last Received Word: " . fieldsAlreadyUpdated)
+
 			sfUpdated := parseMap.IsParsed(m.wpmid)
 
 			if sfUpdated
@@ -789,28 +793,42 @@ class UpdateSalesforceFields extends RoutineObject
 			if urlExists
 			{
 				edge.FocusURLBar()
+				Sleep 250
 				edge.PasteURLAndGo(fub.FullURL)
-
-				Sleep 500
-
+				
 				Clippy.Shove("none")
 
 				jsParseString := m.CreateJSParseString(",", "+")
 
-				this.statBar.Show("Merchant: " . A_Index . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString)
+				this.statBar.Show("Merchant: " . A_Index . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString . "`r`n" . "Last Received Word: " . fieldsAlreadyUpdated)
 				
+				; Sleep 4000
+				Sleep 1000
+
 				; Updates the fields, if there is a need to do that.
 				fieldsAlreadyUpdated := fub.UpdateFields(jsParseString)
 
 				orderIndex := parseMap.Retrieve(m.wpmid).OrderIndex
-				parseMap.SetParsed(orderIndex)
 				
-				if not fieldsAlreadyUpdated
-					Logger.Append(this.className, m.wpmid . " updated")
-				else
-					Logger.Append(this.className, m.wpmid .  " already up to date")
-
-				Sleep 1000
+				if (fieldsAlreadyUpdated = "CHANGED") or (fieldsAlreadyUpdated = "EQUAL")
+				{
+					Logger.Append(this.className, m.wpmid . (fieldsAlreadyUpdated = "CHANGED" ? " updated" : " already up to date"))
+					parseMap.SetParsed(orderIndex)
+					if fieldsAlreadyUpdated = "CHANGED"
+					{
+						tally["CHANGED"] += 1
+						Sleep 1500
+					}
+					else
+					{
+						tally["EQUAL"] += 1
+					}
+				}
+				else if fieldsAlreadyUpdated = "INACCESSIBLE"
+				{
+					Logger.Append(this.className, m.wpmid . " something went wrong accessing the Javascript for this webpage")
+					tally["INACCESSIBLE"] += 1
+				}
 			}
 			else
 			{
@@ -822,7 +840,8 @@ class UpdateSalesforceFields extends RoutineObject
 			csv.StringToCSV(str)
 
 			totalParsed += 1
-			totalComplete += 1
+			if sessionBatchAmount != 0
+				totalComplete += 1
 		}
 
 		this.Stop()
@@ -833,19 +852,31 @@ class UpdateSalesforceFields extends RoutineObject
 
 		if prompt = "Yes"
 		{
-			body := ""
+			temp := "
+			(
+			TIME ELAPSED: {1}
+
+			TOTAL SIZE:   {2}
+			BATCH SIZE:   {3}
+
+			EQUAL:        {4}
+			CHANGED:      {5}
+			INACCESSIBLE: {6}
+			)"
+
 			msgLines := Array(
-				"Total Parsed: " . idx . " of " . realTotal,
-				"Batch Size: " . sessionBatchAmount,
-				"Time Elapsed: " .  this.process.ElapsedTime()
+				this.process.ElapsedTime(),
+				idx . " of " . realTotal,
+				sessionBatchAmount,
+				tally["EQUAL"],
+				tally["CHANGED"],
+				tally["INACCESSIBLE"]
 			)
-			for l in msgLines
-			{
-				body .= l . (A_Index = msgLines.length ? "" : "`r`n")
-			}
+
+			body := Format(temp, msgLines*)
 			this.PrepareAndSendNotificationEmail(ol, this.className, this.process.ElapsedTime(), body)
 		}
 
-		MsgBox "Open dates updated"
+		MsgBox "Salesforce fields updated in " . this.process.ElapsedTime()
 	}
 }

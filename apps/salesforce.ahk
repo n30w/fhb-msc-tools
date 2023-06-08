@@ -9,8 +9,9 @@ class SalesforceDB extends Application
 	altShiftB()
 	{
 		Send "{Alt down}{Shift down}b"
-		Sleep 150
+		Sleep 200
 		Send "{Alt up}{Shift up}"
+		; Send "!+a"
 		Sleep 200
 	}
 	
@@ -202,35 +203,39 @@ class FieldUpdaterBookmarklet extends SalesforceDB
 		Clippy.Shove(jsParseString)
 		
 		this.altShiftB()
-		Sleep 500
-		Send "{Enter}"
-		Sleep 500
+		Sleep 300
+		Send "{Right 1}"
+		Sleep 100
+		Send "{Enter down}"
+		Sleep 100
+		Send "{Enter up}"
+		Sleep 400
 
 		t := 0
-	 	i := 10
-		tMax := 20000
+	 	i := 50
+		tMax := 12000
 
 	 	; wait for page to load and check clipboard, or else it times out
-	 	while (A_Clipboard = jsParseString) and (t < tMax)
+	 	while (A_Clipboard = jsParseString) and (t <= tMax)
 	 	{
 	 		; wait
 	 		Sleep i
 	 		t += i
 	 	}
 
-		if t > tMax
-	 		throw Error("Can't access webpage", -1)
-		
-		Sleep 1000
+		if t >= tMax
+	 		return "INACCESSIBLE" ; If this is returned, something went wrong doing the bookmarklet.
+
+		Sleep 200
 
 		if A_Clipboard = "equal"
 		{
-			return False
+			return "EQUAL"
 		}
 
 		if A_Clipboard = "changed"
 		{
-			return True
+			return "CHANGED"
 		}
 	}
 }

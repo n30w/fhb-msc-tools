@@ -554,7 +554,7 @@ class Merchant
 		{
 			if f = "scheme"
 				continue
-			if v != "none"
+			if v != "none" ; Omits "none" headers from string.
 			{
 				headers.Push(f)
 				values.Push(( SubStr(f, -4) = "Date" ? this.SalesforceDateFormat(v) : v))

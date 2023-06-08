@@ -5,8 +5,10 @@ class MSEdge extends Application
 	FocusURLBar()
 	{
 		Sleep 50
-		Send "^l"
-		Sleep 50
+		Send "{Ctrl down}l"
+		Sleep 200
+		Send "{Ctrl up}"
+		Sleep 200
 	}
 
 	NewTab()
@@ -20,8 +22,10 @@ class MSEdge extends Application
 	{
 		Clippy.Shove(url)
 		Send "^v"
-		Sleep 100
-		Send "{Enter}"
+		Sleep 200
+		Send "{Enter down}"
+		Sleep 75
+		Send "{Enter up}"
 		Sleep 300
 	}
 
