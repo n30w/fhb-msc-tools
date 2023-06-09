@@ -127,7 +127,7 @@ class DataHandler
 	; IsParsed returns true or false if a value is already parsed or not. "Parsed" in this context refers to a row's column value given from a routine's TSV or CSV file located in the "resources/routines" folder. This folder serves as a type of memory on disk, so that if the program reloads, it can pick up where it left off, in other words, it knows whether it has already parsed a value or not.
 	IsParsed(k)
 	{
-		p := False
+		p := false
 		try 
 		{
 			p := this.Retrieve(k).Parsed

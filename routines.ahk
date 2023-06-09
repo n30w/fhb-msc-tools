@@ -848,6 +848,7 @@ class UpdateSalesforceFields extends RoutineObject
 			else
 			{
 				rlf.Append(, m.wpmid . " does not have an existing account on Salesforce")
+				totalParsed += 1
 				continue
 			}
 
