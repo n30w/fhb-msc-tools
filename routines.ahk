@@ -624,6 +624,7 @@ class RoutineObject
 	uptime := Timer()
 	process := Timer()
 	statBar := StatusBar()
+	className := ""
 
 	thisClassName()
 	{
@@ -684,19 +685,33 @@ class RoutineObject
 		return MsgBox(msg, title, "YesNoCancel Icon? Default3")
 	}
 
-	PrepareAndSendNotificationEmail(ol, className, elapsedTime, customText?)
+	PrepareAndSendNotificationEmail(ol, customText?)
 	{
-		subject := "[ROUTINE COMPLETE] " . className .  " - " . Logger.GetFileDateTime()
-		body := className . " finished in " . elapsedTime
+		subject := "[ROUTINE COMPLETE] " . this.className .  " - " . Logger.GetFileDateTime()
+		body := this.className . " finished in " . this.process.ElapsedTime()
 
 		if IsSet(customText)
 			body := customText
-
+		
 		Windows.FocusWindow(ol)
-		ol.CreateNewEmail().To(FileHandler.Config("Fields", "MyEmail")).CC().Subject(subject).Body(body)
+		Sleep 100
+		ol.AccessMenuItem("y").SendComposeEmailWithFontMacro()
+		
+		WinWaitActive "Untitled - Message (HTML) "
+
+		Send subject
+		Sleep 100
+		Send "{Tab}"
+		Sleep 100
+		Send "{Ctrl down}"
+		Sleep 100
+		Send "a"
+		Sleep 70
+		Send "{Ctrl up}"
+		Sleep 100
+		Send body
 		Sleep 1000
-		ol.SendEmail()
-		Logger.Append(className, "Email notification sent!")
+		ol.SendEmail2()
 	}
 }
 
@@ -850,33 +865,35 @@ class UpdateSalesforceFields extends RoutineObject
 
 		this.statBar.Reset()
 
+		temp := "
+		(
+		TIME ELAPSED: {1}
+
+		TOTAL SIZE:   {2}
+		BATCH SIZE:   {3}
+
+		EQUAL:        {4}
+		CHANGED:      {5}
+		INACCESSIBLE: {6}
+		)"
+
+		msgLines := Array(
+			this.process.ElapsedTime(),
+			idx . " of " . realTotal,
+			sessionBatchAmount,
+			tally["EQUAL"],
+			tally["CHANGED"],
+			tally["INACCESSIBLE"]
+		)
+
+		body := Format(temp, msgLines*)
+		
 		if prompt = "Yes"
 		{
-			temp := "
-			(
-			TIME ELAPSED: {1}
-
-			TOTAL SIZE:   {2}
-			BATCH SIZE:   {3}
-
-			EQUAL:        {4}
-			CHANGED:      {5}
-			INACCESSIBLE: {6}
-			)"
-
-			msgLines := Array(
-				this.process.ElapsedTime(),
-				idx . " of " . realTotal,
-				sessionBatchAmount,
-				tally["EQUAL"],
-				tally["CHANGED"],
-				tally["INACCESSIBLE"]
-			)
-
-			body := Format(temp, msgLines*)
-			this.PrepareAndSendNotificationEmail(ol, this.className, this.process.ElapsedTime(), body)
+			this.PrepareAndSendNotificationEmail(ol, body)
+			Logger.Append(this.className, "Email notification sent!")
 		}
 
-		MsgBox "Salesforce fields updated in " . this.process.ElapsedTime()
+		MsgBox body
 	}
 }

@@ -53,6 +53,17 @@ class OutlookMail extends Application
         return this
     }
 
+    SendEmail2()
+    {
+        Send "{Ctrl down}"
+		Sleep 200
+		Send "{Enter}"
+        Sleep 200
+		Send "{Ctrl up}"
+        Sleep 200
+        return this
+    }
+
     SendOrderMacro()
     {
         Send "y"
@@ -65,6 +76,13 @@ class OutlookMail extends Application
         Send "y"
         Sleep 50
         Send "2"
+    }
+
+    SendComposeEmailWithFontMacro()
+    {
+        Send "y"
+        Sleep 50
+        Send "3"
     }
 
     AccessMenuItem(key)
