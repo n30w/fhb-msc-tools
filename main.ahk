@@ -16,6 +16,7 @@ Logger.SetFilePath(fo.Config("Paths", "SystemLogs"))
 
 LogStopReason(ExitReason, ExitCode)
 {
+	Routines.Cease()
 	Logger.Append(, "===== Stopping due to " . ExitReason . " =====")
 }
 
@@ -58,6 +59,11 @@ win := Windows(lg, ob, caps, ol)
 ; initialize routines
 routine := Routines(lg, fo)
 
+getCAPSPage := GetCAPSAccount().Init("GetCAPSAccount", apps := {caps: caps})
+updateSFFields := UpdateSalesforceFields().Init("SFUpdate1", apps := {fub: fub := FieldUpdaterBookmarklet(), edge: edge, ol: ol})
+
+Routines.Load(updateSFFields, getCAPSPage)
+
 ; open windows if not already open
 win.Initialize()
 
@@ -72,18 +78,12 @@ Logger.Append(, "Session started! Time to make money...")
 	
 	F5:: Windows.FocusWindow(ob)
 	
-	^+F6::
-	{
-		fub := FieldUpdaterBookmarklet()
-		newRoutine := UpdateSalesforceFields()
-		newRoutine.Initialize("SFUpdate1", apps := {fub: fub, edge: edge, ol: ol})
-		newRoutine.Do()
-	}
+	^+F6:: updateSFFields.Do()
 	
 	^F7:: routine.PrepareClosureFormEmail(win, caps, ol)
 	^+F7:: routine.PrepareConversionEmail(win, caps, ol)
 	
-	F8:: routine.GetCAPSAccount(win, caps)
+	F8:: getCAPSPage.Do()
 	^F8:: routine.GetSalesforceConversionCase(win, edge, sf)
 	^+F8:: routine.GetCAPSAccount(win, caps).GetSalesforceAccount(win, edge, sf)
 	

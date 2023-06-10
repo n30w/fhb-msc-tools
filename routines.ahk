@@ -7,32 +7,38 @@
 
 class Routines
 {
+	static RoutineList := Queue()
+
+	; Load wanted routines into the Singleton RoutineList.
+	static Load(rs*)
+	{
+		Loop rs.length
+		{
+			Routines.RoutineList.Enqueue(rs[A_Index])
+		}
+	}
+
+	; Cease destroys all current running routines.
+	static Cease()
+	{
+		while Routines.RoutineList.Length() > 0
+		{
+			elm := Routines.RoutineList.Dequeue()
+			if elm.IsActive()
+			{
+				elm.Butcher()
+				Logger.Append(, "///BUTCHERED/// " . elm.className . " => process time " . elm.ElapsedTime())
+			}
+		}
+	}
+
 	__New(logger, fileOps)
 	{
 		this.logger := logger
 		this.fileOps := fileOps
 		this.clock := Timer()
 		this.data := DataHandler()
-		this.RoutineList := Array()
 		this.sharedDrive := this.fileOps.Config("Paths", "SharedDrive")
-	}
-
-	; Load routines into RoutineList
-	Load(routines*)
-	{
-		for routine in routines
-		{
-			this.RoutineList.Push(routine)
-		}
-	}
-
-	StopAll()
-	{
-		for routine in this.RoutineList
-		{
-			if routine.IsActive()
-				routine.Butcher()
-		}
 	}
 
 	; Attaches something to clippy and pastes it.
@@ -625,6 +631,7 @@ class RoutineObject
 	process := Timer()
 	statBar := StatusBar()
 	className := ""
+	apps := {}
 
 	thisClassName()
 	{
@@ -632,8 +639,10 @@ class RoutineObject
 		return str[1] . str[2] . str[3]
 	}
 
-	Initialize()
+	Init(className, apps)
 	{
+		this.className := className
+		this.apps := apps
 		; Add initializations here...
 	}
 
@@ -680,6 +689,8 @@ class RoutineObject
 		this.Butcher()
 	}
 
+	ElapsedTime() => this.process.ElapsedTime()
+
 	YesNoCancelBox(msg, title)
 	{
 		return MsgBox(msg, title, "YesNoCancel Icon? Default3")
@@ -715,11 +726,50 @@ class RoutineObject
 	}
 }
 
+; ROUTINE OBJECTS ;
+
+; GetCAPSAccount pulls up CAPS and searches it for a single MID.
+class GetCAPSAccount extends RoutineObject
+{
+	Init(className, apps)
+	{
+		this.className := className
+		this.apps := apps
+
+		return this
+	}
+
+	Do()
+	{
+		className := this.className
+		caps := this.apps.caps
+
+		this.Begin()
+
+		mid := DataHandler.Sanitize(A_Clipboard)
+		if Clippy.IsEmpty(mid)
+		{
+			Logger.Append(className, "Clipboard empty! Exiting...")
+		}
+		else
+		{
+			Windows.FocusWindow(caps)
+			caps.clickBinocularAndSearch(mid)
+			Sleep 200
+			Clippy.Shove(mid)
+		}
+
+		this.Stop()
+
+		return this
+	}
+}
+
 ; UpdateSalesforceFields is a RoutineObject that allows the user to update fields on Salesforce when it is given a custom Salesforce object. It uses that object to execute the updates on Salesforce via the Salesforce "UpdateFields" method.
 class UpdateSalesforceFields extends RoutineObject
 {
 	scheme := Array()
-	Initialize(className, apps, scheme?)
+	Init(className, apps, scheme?)
 	{
 		this.fub := apps.fub ; fub means Bookmark Field Updater. Its a class that updates bookmark fields, extended from SalesforceDB.
 		this.edge := apps.edge
@@ -728,6 +778,8 @@ class UpdateSalesforceFields extends RoutineObject
 			this.scheme := this.schemeFromObject(scheme)
 
 		this.className := className
+
+		return this
 	}
 
 	schemeFromObject(obj)
@@ -758,7 +810,7 @@ class UpdateSalesforceFields extends RoutineObject
 
 		inPath := FileHandler.Config("Paths", "TempCSV")
 		outPath := FileHandler.Config("Resources", this.className)
-		rlf := Logger()
+		rlf := Logger(FileHandler.Config("Paths", "RoutineLogs"), this.className)
 
 		csv := FileHandler(inPath, outPath, this.className)
 
@@ -781,6 +833,7 @@ class UpdateSalesforceFields extends RoutineObject
 		totalComplete := 0
 		merchantLength := merchants.length
 		sessionBatchAmount := Integer(FileHandler.Config("UpdateSalesforceFields", "sessionBatchAmount"))
+		sessionBatchAmount := (sessionBatchAmount > 0 ? sessionBatchAmount - 1 : sessionBatchAmount)
 
 		tally := Map("INACCESSIBLE", 0, "CHANGED", 0, "EQUAL", 0)
 
@@ -793,7 +846,7 @@ class UpdateSalesforceFields extends RoutineObject
 			idx := parseMap.Retrieve(m.wpmid).OrderIndex
 			realTotal := parseMap.DsLength//parsemap.Cols.length
 			
-			this.statBar.Show("Merchant: " . A_Index . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString . "`r`n" . "Last Received Word: " . fieldsAlreadyUpdated)
+			this.statBar.Show("Merchant: " . totalParsed . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Completed in Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString . "`r`n" . "Last Received Word: " . fieldsAlreadyUpdated)
 
 			sfUpdated := parseMap.IsParsed(m.wpmid)
 
@@ -815,7 +868,7 @@ class UpdateSalesforceFields extends RoutineObject
 
 				jsParseString := m.CreateJSParseString(",", "+")
 
-				this.statBar.Show("Merchant: " . A_Index . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString . "`r`n" . "Last Received Word: " . fieldsAlreadyUpdated)
+				this.statBar.Show("Merchant: " . totalParsed . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Completed in Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString . "`r`n" . "Last Received Word: " . fieldsAlreadyUpdated)
 				
 				; Sleep 4000
 				Sleep 1000
@@ -844,20 +897,22 @@ class UpdateSalesforceFields extends RoutineObject
 					Logger.Append(this.className, m.wpmid . " something went wrong accessing the Javascript for this webpage")
 					tally["INACCESSIBLE"] += 1
 				}
+
+				Sleep 800
+
+				; Write changes to routine file. This is the routine's "memory".
+				str := parseMap.DataStoreToFileString(csv.Scheme)
+				csv.StringToCSV(str)
 			}
 			else
 			{
 				rlf.Append(, m.wpmid . " does not have an existing account on Salesforce")
-				totalParsed += 1
-				continue
 			}
 
-			str := parseMap.DataStoreToFileString(csv.Scheme)
-			csv.StringToCSV(str)
-
 			totalParsed += 1
-			if sessionBatchAmount != 0
+			if sessionBatchAmount != 0 ; when the batch amount is 0, that means keep parsing til the very end, no limit.
 				totalComplete += 1
+
 		}
 
 		this.Stop()
