@@ -595,3 +595,36 @@ class Merchant
 		return newFormat
 	}
 }
+
+; Abstract Data Structures
+
+class AbstractDataStructure
+{
+	__New()
+	{
+		this.arr := Array()
+	}
+
+	Length() => this.arr.length
+}
+
+class Queue extends AbstractDataStructure
+{
+	; Enqueue adds an element to the queue, from the front.
+	Enqueue(el) => this.arr.Push(el)
+
+	; Dequeue removes an element form the queue, from the front.
+	Dequeue()
+	{
+		firstElm := this.arr[1]
+		this.arr.RemoveAt(1)
+		return firstElm
+	}
+}
+
+class Stack extends AbstractDataStructure
+{
+	Push(el) => this.arr.Push(el)
+
+	Pop() => this.arr.Pop()
+}
