@@ -179,7 +179,8 @@ javascript: (function() {
                 await clickButton(exitPromise, "title", "Edit Closed Date");
                 await myTimeout(async () => {
                     if (!exitPromise) {
-                        await myTimeout(() => {
+                        const editBtn = await waitForElm("//button[@name='SaveEdit']");
+                        myTimeout(() => {
                             let fr;
                             headerFieldsFromInputString.forEach(async function(val) {
                                 fr = fieldRef.get(val);
@@ -190,16 +191,12 @@ javascript: (function() {
                                     selection.dispatchEvent(new Event("change"));
                                 }
                             }, 700);
-                        });
-        
-                        await myTimeout(() => {
-                            waitForElm("//button[@name='SaveEdit']").then((elm) => {
-                                myTimeout(() => {
-                                    elm.click();
-                                }, 1200);
+                        }).then(() => {
+                            myTimeout(() => {
+                                editBtn.click();
                                 copyToClipboard("changed");
                                 console.log("CHANGE SUCCESS");
-                            });
+                            }, 1200);
                         });
                     }
                     console.log("=== COMPLETE ===");
