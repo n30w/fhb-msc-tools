@@ -792,9 +792,17 @@ class UpdateSalesforceFields extends RoutineObject
 		return s
 	}
 
-	Do()
+	Do(passIndex := 1)
 	{
-		prompt := this.YesNoCancelBox("Would you like to send a notification email when routine is complete?", this.className)
+		prompt := ""
+		if passIndex = 1
+			prompt := this.YesNoCancelBox("Would you like to send a notification email when routine is complete?", this.className)
+		
+		if passIndex > 10
+		{
+			Logger.Append(this.className, "Too many passes - " . passIndex . ". Something is consistently inaccessible => stopping...")
+			return
+		}
 		
 		if prompt = "Cancel"
 			return
@@ -807,6 +815,7 @@ class UpdateSalesforceFields extends RoutineObject
 		idx := 0
 		realTotal := 0
 		fieldsAlreadyUpdated := False
+		encounteredJSError := False
 
 		inPath := FileHandler.Config("Paths", "TempCSV")
 		outPath := FileHandler.Config("Resources", this.className)
@@ -846,7 +855,7 @@ class UpdateSalesforceFields extends RoutineObject
 			idx := parseMap.Retrieve(m.wpmid).OrderIndex
 			realTotal := parseMap.DsLength//parsemap.Cols.length
 			
-			this.statBar.Show("Merchant: " . totalParsed . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Completed in Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString . "`r`n" . "Last Received Word: " . fieldsAlreadyUpdated)
+			this.statBar.Show("Merchant: " . totalParsed . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Completed in Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString . "`r`n" . "Last Received Word: " . fieldsAlreadyUpdated . "`r`n" . "Pass: " . passIndex)
 
 			sfUpdated := parseMap.IsParsed(m.wpmid)
 
@@ -868,7 +877,7 @@ class UpdateSalesforceFields extends RoutineObject
 
 				jsParseString := m.CreateJSParseString(",", "+")
 
-				this.statBar.Show("Merchant: " . totalParsed . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Completed in Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString . "`r`n" . "Last Received Word: " . fieldsAlreadyUpdated)
+				this.statBar.Show("Merchant: " . totalParsed . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Completed in Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString . "`r`n" . "Last Received Word: " . fieldsAlreadyUpdated . "`r`n" . "Pass: " . passIndex)
 				
 				; Sleep 4000
 				Sleep 1000
@@ -896,6 +905,7 @@ class UpdateSalesforceFields extends RoutineObject
 				{
 					Logger.Append(this.className, m.wpmid . " something went wrong accessing the Javascript for this webpage")
 					tally["INACCESSIBLE"] += 1
+					encounteredJSError := True
 				}
 
 				Sleep 800
@@ -921,21 +931,32 @@ class UpdateSalesforceFields extends RoutineObject
 
 		this.statBar.Reset()
 
+		if encounteredJSError
+		{
+			this.Do(passIndex + 1)
+		}
+		else if !encounteredJSError and passIndex > 1
+		{
+			return
+		}
+
 		temp := "
 		(
 		TIME ELAPSED: {1}
+		TOTAL PASSES: {2}
+		TOTAL SIZE:   {3}
+		BATCH SIZE:   {4}
 
-		TOTAL SIZE:   {2}
-		BATCH SIZE:   {3}
+		EQUAL:        {5}
+		CHANGED:      {6}
+		INACCESSIBLE: {7}
 
-		EQUAL:        {4}
-		CHANGED:      {5}
-		INACCESSIBLE: {6}
 		)"
 
 		msgLines := Array(
 			this.process.ElapsedTime(),
-			idx . " of " . realTotal,
+			passIndex,
+			idx . " of " . realTotal - 1,
 			sessionBatchAmount,
 			tally["EQUAL"],
 			tally["CHANGED"],

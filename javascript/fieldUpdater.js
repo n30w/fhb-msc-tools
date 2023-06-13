@@ -190,7 +190,7 @@ javascript: (function() {
                                     selection.value = fr.newValue;
                                     selection.dispatchEvent(new Event("change"));
                                 }
-                            }, 700);
+                            }, 300);
                         }).then(() => {
                             myTimeout(() => {
                                 editBtn.click();
@@ -199,12 +199,12 @@ javascript: (function() {
                             }, 1200);
                         });
                     }
-                    console.log("=== COMPLETE ===");
                 });
             } catch(e) {
                 console.log(e);
             }
         }, 1000);
+        console.log("=== COMPLETE ===");
     }
 
     main();
