@@ -125,32 +125,38 @@ javascript: (function() {
 
         /* If there are values that need to be changed, change them here */
         await myTimeout(async () => {
-            const btn1 = await waitForElm("//button[@title='Edit Status']");
-            await myTimeout(() => {
-                btn1.click();
-            }, 500);
-            await myTimeout(async () => {
-                if (fields2.length > 0) {
-                    const editBtn = await waitForElm("//button[@name='SaveEdit']");
-                    myTimeout(() => {
-                        fields2.forEach(async (f, i) => {
-                            const btn2 = await waitForElm("//button[@aria-label='" + f.fieldLabel + ", " + f.currentValue + "']");
-                            await myTimeout(() => {
-                                btn2.click();
-                            }, 400);
-                            const btn3 = await waitForElm("//lightning-base-combobox-item[@data-value='" + f.childValue +"']");
-                            await myTimeout(() => {
-                                btn3.click();
-                            });
-                        });
-                    }, 500).then(() => {
+            try {
+                const exitPromise = await assertEqual((fields2.length > 0));
+                await clickButton(!exitPromise, "title", "Edit Status");
+                await myTimeout(async () => {
+                    if (fields2.length > 0) {
+                        const editBtn = await waitForElm("//button[@name='SaveEdit']");
                         myTimeout(() => {
-                            editBtn.click();
-                            copyToClipboard("changed");
-                        }, 1200);
-                    });
-                }
-            }, 400);
+                            fields2.forEach(async (f, i) => {
+                                const btn2 = await waitForElm("//button[@aria-label='" + f.fieldLabel + ", " + f.currentValue + "']");
+                                await myTimeout(() => {
+                                    btn2.click();
+                                }, 400);
+                                const btn3 = await waitForElm("//lightning-base-combobox-item[@data-value='" + f.childValue +"']");
+                                await myTimeout(() => {
+                                    btn3.click();
+                                });
+                            });
+                        }, 500).then(() => {
+                            myTimeout(() => {
+                                editBtn.click();
+                                copyToClipboard("changed");
+                            }, 1200);
+                        });
+                    } else {
+                        console.log("Nothing to change");
+                        copyToClipboard("none");
+                    }
+                }, 400);
+                
+            } catch (e) {
+                console.log(e);
+            }
         }, 500);
     }
 
