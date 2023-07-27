@@ -53,7 +53,7 @@ DataHandler.BuildStore("resources\data\data.csv")
 	ob := ObsidianVault("Obsidian",, "obsidian.lnk", "ahk_exe Obsidian.exe")
 }
 
-; Windows to initialize on script startup
+; windows to initialize on script startup
 win := Windows(lg, ob, caps, ol)
 
 ; initialize routines
@@ -61,8 +61,9 @@ routine := Routines(lg, fo)
 
 getCAPSPage := GetCAPSAccount().Init("GetCAPSAccount", apps := {caps: caps})
 updateSFFields := UpdateSalesforceFields().Init("SFUpdate1", apps := {fub: fub := FieldUpdaterBookmarklet(), edge: edge, ol: ol})
+getSFConversionCase := GetSalesforcePage().Init("GetSalesforcePage", apps := {sf: sf})
 
-Routines.Load(updateSFFields, getCAPSPage)
+Routines.Load(updateSFFields, getCAPSPage, getSFConversionCase)
 
 ; open windows if not already open
 win.Initialize()
@@ -84,7 +85,7 @@ Logger.Append(, "Session started! Time to make money...")
 	^+F7:: routine.PrepareConversionEmail(win, caps, ol)
 	
 	F8:: getCAPSPage.Do()
-	^F8:: routine.GetSalesforceConversionCase(win, edge, sf)
+	^F8:: getSFConversionCase.Do()
 	^+F8:: routine.GetCAPSAccount(win, caps).GetSalesforceAccount(win, edge, sf)
 	
 	F9:: routine.GenerateOrder(win, caps, ob)

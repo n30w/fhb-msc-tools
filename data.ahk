@@ -208,6 +208,14 @@ class Clippy
 	; access A_Clipboard directly. Shove a value into it!
 	static Shove(v) => A_Clipboard := v
 	
+	static Paste()
+	{
+		Send "^v"
+		Sleep 100
+		Clippy.emptyA_Clipboard()
+		return this
+	}
+
 	static IsEmpty(m)
 	{
 		if StrLen(m) < 1
@@ -220,6 +228,8 @@ class Clippy
 			return False
 		}
 	}
+
+	static emptyA_Clipboard() => A_Clipboard := ""
 
 	Board := ""
 	

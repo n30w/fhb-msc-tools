@@ -765,6 +765,58 @@ class GetCAPSAccount extends RoutineObject
 	}
 }
 
+class GetSalesforcePage extends RoutineObject
+{
+	Init(className, apps)
+	{
+		this.className := className
+		this.apps := apps
+
+		return this
+	}
+
+	Do()
+	{
+		className := this.className
+		sf := this.apps.sf
+		mid := ""
+
+		this.Begin()
+
+		if IsSet(m)
+			mid := m
+		else
+		{
+			mid := DataHandler.Sanitize(A_Clipboard)
+		}
+		
+		try
+		{
+			Clippy.Shove(sf.CaseURL(DataHandler.Retrieve(mid).CaseID))
+		}
+		catch
+		{
+			DoesNotExist(className, this.logger, mid)
+			return this
+		}
+
+		Sleep 500
+		win.FocusWindow(edge)
+		if not edge.TabTitleContains("Salesforce")
+			edge.NewTab()
+		else
+			edge.FocusURLBar()
+		Clippy.Paste()
+		Send "{Enter}"
+		Clippy.Shove(mid)
+		Sleep 500
+
+		this.Stop()
+
+		return this
+	}
+}
+
 ; UpdateSalesforceFields is a RoutineObject that allows the user to update fields on Salesforce when it is given a custom Salesforce object. It uses that object to execute the updates on Salesforce via the Salesforce "UpdateFields" method.
 class UpdateSalesforceFields extends RoutineObject
 {
