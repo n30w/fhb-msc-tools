@@ -87,14 +87,11 @@ javascript: (function() {
         constructor(fieldLabel, childValue) {
             this.fieldLabel = fieldLabel;
             this.childValue = childValue;
-            this.change = false;
             this.currentValue = "";
         }
     }
 
     async function main() {
-        
-        let bool = false;
         let statusDrop = new sfDropdown("Status", "Closed");
         let typeDrop = new sfDropdown("Type", "Closed on WP");
         let caseReasonDrop = new sfDropdown("Case Reason", "Will Not Convert");
@@ -105,50 +102,55 @@ javascript: (function() {
 
         /* Check if each dropdown needs to be changed */
         await myTimeout(async () => {
-            fields.forEach(async (f, i) => {
-                let elm1 = await waitForElm(recordLayoutItemField(f.fieldLabel));
-                let val = elm1.childNodes[0].value;
-                if (val !== f.childValue) {
-                    f.change = true;
-                    f.currentValue = val;
-                    console.log(f.fieldLabel + ": " + f.currentValue);
-                    fields2.push(f);
-                }
+            await myTimeout(() => {
+                fields.forEach(async (f, i) => {
+                    let elm1 = await waitForElm(recordLayoutItemField(f.fieldLabel));
+                    let val = elm1.childNodes[0].value;
+                    console.log(val);
+                    if (val !== f.childValue) {
+                        if (val == null) {
+                            f.currentValue = "--None--";
+                            fields2.push(f);
+                        } else {
+                            if (f.fieldLabel !== "Case Origin") {
+                                f.currentValue = val;
+                                fields2.push(f);
+                            }
+                        }
+                        console.log(f.fieldLabel + ": " + f.currentValue);
+                    }
+                });
             });
         }, 300);
 
         /* If there are values that need to be changed, change them here */
         await myTimeout(async () => {
-            try {
-                const btn1 = await waitForElm("//button[@title='Edit Status']");
-                await myTimeout(() => {
-                    btn1.click();
-                }, 500);
-                await myTimeout(async () => {
-                    if (fields2.length > 0) {
-                        const editBtn = await waitForElm("//button[@name='SaveEdit']");
+            const btn1 = await waitForElm("//button[@title='Edit Status']");
+            await myTimeout(() => {
+                btn1.click();
+            }, 500);
+            await myTimeout(async () => {
+                if (fields2.length > 0) {
+                    const editBtn = await waitForElm("//button[@name='SaveEdit']");
+                    myTimeout(() => {
                         fields2.forEach(async (f, i) => {
-                            console.log("changing");
                             const btn2 = await waitForElm("//button[@aria-label='" + f.fieldLabel + ", " + f.currentValue + "']");
-                            console.log(btn2);
                             await myTimeout(() => {
                                 btn2.click();
                             }, 400);
                             const btn3 = await waitForElm("//lightning-base-combobox-item[@data-value='" + f.childValue +"']");
-                            console.log(btn3);
-                            myTimeout(() => {
+                            await myTimeout(() => {
                                 btn3.click();
                             });
                         });
-                    }
-                }, 400)
-                await myTimeout(() => {
-                    if (fields2.length > 0)
-                        editBtn.click();
-                });
-            } catch (e) {
-                console.log(e);
-            }
+                    }, 500).then(() => {
+                        myTimeout(() => {
+                            editBtn.click();
+                            copyToClipboard("changed");
+                        }, 1200);
+                    });
+                }
+            }, 400);
         }, 500);
     }
 
