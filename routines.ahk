@@ -1025,12 +1025,12 @@ class UpdateSalesforceFields extends RoutineObject
 			
 			Clippy.Shove("")
 			
-			idx := parseMap.Retrieve(m.wpmid).OrderIndex
+			idx := parseMap.Retrieve(m.fdmid).OrderIndex
 			realTotal := parseMap.DsLength//parsemap.Cols.length
 			
 			this.statBar.Show("Merchant: " . totalParsed . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Completed in Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString . "`r`n" . "Last Received Word: " . fieldsAlreadyUpdated . "`r`n" . "Pass: " . passIndex)
 
-			sfUpdated := parseMap.IsParsed(m.wpmid)
+			sfUpdated := parseMap.IsParsed(m.fdmid)
 
 			if sfUpdated
 			{
@@ -1058,11 +1058,11 @@ class UpdateSalesforceFields extends RoutineObject
 				; Updates the fields, if there is a need to do that.
 				fieldsAlreadyUpdated := fub.UpdateFields(jsParseString)
 
-				orderIndex := parseMap.Retrieve(m.wpmid).OrderIndex
+				orderIndex := parseMap.Retrieve(m.fdmid).OrderIndex
 				
 				if (fieldsAlreadyUpdated = "CHANGED") or (fieldsAlreadyUpdated = "EQUAL")
 				{
-					Logger.Append(this.className, m.wpmid . (fieldsAlreadyUpdated = "CHANGED" ? " updated" : " already up to date"))
+					Logger.Append(this.className, m.fdmid . (fieldsAlreadyUpdated = "CHANGED" ? " updated" : " already up to date"))
 					parseMap.SetParsed(orderIndex)
 					if fieldsAlreadyUpdated = "CHANGED"
 					{
@@ -1076,7 +1076,7 @@ class UpdateSalesforceFields extends RoutineObject
 				}
 				else if fieldsAlreadyUpdated = "INACCESSIBLE"
 				{
-					Logger.Append(this.className, m.wpmid . " something went wrong accessing the Javascript for this webpage")
+					Logger.Append(this.className, m.fdmid . " something went wrong accessing the Javascript for this webpage")
 					tally["INACCESSIBLE"] += 1
 					encounteredJSError := True
 				}
@@ -1089,7 +1089,7 @@ class UpdateSalesforceFields extends RoutineObject
 			}
 			else
 			{
-				rlf.Append(, m.wpmid . " does not have an existing account on Salesforce")
+				rlf.Append(, m.fdmid . " does not have an existing account on Salesforce")
 			}
 
 			totalParsed += 1
