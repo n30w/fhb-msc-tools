@@ -122,10 +122,12 @@ javascript: (function() {
         let conversionDate = new sfElm("FD Conversion Date");
         let chain = new sfElm("WP Chain ID", "Chain_ID__c");
         let superChain = new sfElm("WP Super Chain ID");
+        let fdChainID = new sfElm("FD Chain ID");
+        let fdCorpID = new sfElm("FD Corp ID");
         let dda = new sfElm("DDA");
         let tin = new sfElm("TIN #", "TIN__c");
 
-        let fieldRef = buildFieldRefMap(accountName, wpmid, fdmid, chain, superChain, tin, dda, openDate, closedDate, conversionDate);
+        let fieldRef = buildFieldRefMap(accountName, wpmid, fdmid, chain, superChain, tin, dda, openDate, closedDate, conversionDate, fdChainID, fdCorpID);
 
         let inputString = ""; /* get clipboard string here */
         let allEqual = true;

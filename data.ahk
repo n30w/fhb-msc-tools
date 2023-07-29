@@ -487,7 +487,7 @@ class FileHandler
 		{
 			this.outPath := outPath
 			; this.Scheme := getScheme(outPath)
-			this.Scheme := FileHandler.Config("Defaults", "Scheme")
+			this.Scheme := FileHandler.Config("Defaults", "Scheme") ; Scheme of the CSV, aka its columns.
 		}
 		if IsSet(callerName)
 			this.callerName := callerName
@@ -553,7 +553,7 @@ class Merchant
 	closedDate := "none"
 	conversionDate := "none"
 
-	; CreateJSParseString assembles a string that the fieldUpdater.js code consumes. "sep" is what separates values. "chain" is what joins together two arrays
+	; CreateJSParseString assembles a string that the fieldUpdater.js code consumes. "sep" is what separates values. "link" is what joins together two arrays
 	CreateJSParseString(sep, link)
 	{
 		; Assemble the string to be delivered to Javascript via clipboard.
@@ -567,7 +567,7 @@ class Merchant
 			if v != "none" ; Omits "none" headers from string.
 			{
 				headers.Push(f)
-				values.Push(( SubStr(f, -4) = "Date" ? this.SalesforceDateFormat(v) : v))
+				values.Push((SubStr(f, -4) = "Date" ? this.SalesforceDateFormat(v) : v))
 			}
 		}
 

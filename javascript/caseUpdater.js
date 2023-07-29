@@ -97,8 +97,10 @@ javascript: (function() {
         let caseReasonDrop = new sfDropdown("Case Reason", "Will Not Convert");
         let caseOriginDrop = new sfDropdown("Case Origin", "Internal");
 
-        const fields = [statusDrop, typeDrop, caseReasonDrop, caseOriginDrop];
+        const fields = [statusDrop, typeDrop, caseOriginDrop];
         let fields2 = [];
+
+        const elm = await waitForElm("//records-record-layout-item[@field-label='Internal Comments']");
 
         /* Check if each dropdown needs to be changed */
         await myTimeout(async () => {
@@ -121,7 +123,7 @@ javascript: (function() {
                     }
                 });
             });
-        }, 300);
+        }, 500);
 
         /* If there are values that need to be changed, change them here */
         await myTimeout(async () => {
@@ -142,22 +144,23 @@ javascript: (function() {
                                     btn3.click();
                                 });
                             });
-                        }, 500).then(() => {
+                        }, 750).then(() => {
                             myTimeout(() => {
                                 editBtn.click();
-                                copyToClipboard("changed");
-                            }, 1200);
+                            }, 800).then(() => {
+                                copyToClipboard("changed"); /* Bad form but I dont have time right now */
+                            });
                         });
                     } else {
                         console.log("Nothing to change");
-                        copyToClipboard("none");
+                        copyToClipboard("equal");
                     }
-                }, 400);
+                }, 800);
                 
             } catch (e) {
                 console.log(e);
             }
-        }, 500);
+        }, 1000);
     }
 
     main();

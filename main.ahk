@@ -60,10 +60,11 @@ win := Windows(lg, ob, caps, ol)
 routine := Routines(lg, fo)
 
 getCAPSPage := GetCAPSAccount().Init("GetCAPSAccount", apps := {caps: caps})
-updateSFFields := UpdateSalesforceFields().Init("SFUpdate1", apps := {fub: fub := FieldUpdaterBookmarklet(), edge: edge, ol: ol})
+updateAccountFields := UpdateSalesforceFields().Init("SFUpdate1", apps := {fub: fub := FieldUpdaterBookmarklet(), edge: edge, ol: ol})
 getSFConversionCase := GetSalesforcePage().Init("GetSalesforcePage", apps := {sf: sf})
+updateCaseFields := UpdateSalesforceCaseFields().Init("SFUpdate2", apps := {cub: cub := CaseUpdaterBookmarklet(), edge: edge, ol: ol})
 
-Routines.Load(updateSFFields, getCAPSPage, getSFConversionCase)
+Routines.Load(updateAccountFields, getCAPSPage, getSFConversionCase, updateCaseFields)
 
 ; open windows if not already open
 win.Initialize()
@@ -79,7 +80,8 @@ Logger.Append(, "Session started! Time to make money...")
 	
 	F5:: Windows.FocusWindow(ob)
 	
-	^+F6:: updateSFFields.Do()
+	^+F6:: updateAccountFields.Do()
+	;^+F6:: updateCaseFields.Do()
 	
 	^F7:: routine.PrepareClosureFormEmail(win, caps, ol)
 	^+F7:: routine.PrepareConversionEmail(win, caps, ol)

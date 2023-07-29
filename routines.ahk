@@ -80,7 +80,7 @@ class Routines
 		}
 		catch
 		{
-			DoesNotExist(this.GetSalesforceAccount.Name, this.logger, mid)
+			DoesNotExist(this.GetSalesforceAccount.Name, mid)
 			return
 		}
 		
@@ -111,7 +111,7 @@ class Routines
 		}
 		catch
 		{
-			DoesNotExist(this.GetSalesforceConversionCase.Name, this.logger, mid)
+			DoesNotExist(this.GetSalesforceConversionCase.Name, mid)
 			return
 		}
 		Sleep 500
@@ -577,7 +577,7 @@ class Routines
 		}
 		catch
 		{
-			DoesNotExist(this.DataStoreQuickLook.Name, this.logger, c)
+			DoesNotExist(this.DataStoreQuickLook.Name, c)
 			return
 		}
 		
@@ -796,7 +796,7 @@ class GetSalesforcePage extends RoutineObject
 		}
 		catch
 		{
-			DoesNotExist(className, this.logger, mid)
+			DoesNotExist(className, mid)
 			return this
 		}
 
@@ -817,13 +817,135 @@ class GetSalesforcePage extends RoutineObject
 	}
 }
 
+class UpdateSalesforceCaseFields extends RoutineObject
+{
+	Init(className, apps)
+	{
+		this.cub := apps.cub ; cub means Case Updater Bookmarklet.
+		this.edge := apps.edge
+		this.ol := apps.ol
+		
+		this.className := className
+		
+		return this
+	}
+
+	Do()
+	{
+
+		prompt := this.YesNoCancelBox("Would you like to send a notification email when routine is complete?", this.className)
+
+		this.Begin()
+
+		cub := this.cub
+		edge := this.edge
+		ol := this.ol
+
+		rlf := Logger(FileHandler.Config("Paths", "RoutineLogs"), this.className)
+		
+		Logger.Append(this.className, "Started")
+
+		tally := Map("INACCESSIBLE", 0, "CHANGED", 0, "EQUAL", 0)
+		totalParsed := 1
+		merchants := FileHandler.CreateMerchantArray(FileHandler.Config("Functions", this.className))
+		merchantLength := merchants.length
+		
+		Windows.FocusWindow(edge)
+
+		if not edge.TabTitleContains("Salesforce")
+			edge.NewTab()
+
+		while totalParsed < merchants.length
+		{
+			m := merchants[totalParsed]
+			urlExists := cub.HasCaseURL(m)
+			
+			Sleep 700
+			
+			if urlExists
+			{
+				edge.FocusURLBar()
+				Sleep 250
+				edge.PasteURLAndGo(cub.FullURL)
+
+				fieldsAlreadyUpdated := cub.UpdateFields("waiting")
+				
+				Sleep 1000
+
+				if (fieldsAlreadyUpdated = "CHANGED") or (fieldsAlreadyUpdated = "EQUAL")
+				{
+					Logger.Append(this.className, m.wpmid . (fieldsAlreadyUpdated = "CHANGED" ? " updated" : " already up to date"))
+					
+					if fieldsAlreadyUpdated = "CHANGED"
+					{
+						tally["CHANGED"] += 1
+						Sleep 700
+					}
+					else
+					{
+						tally["EQUAL"] += 1
+					}
+				}
+				else if fieldsAlreadyUpdated = "INACCESSIBLE"
+				{
+					Logger.Append(this.className, m.wpmid . " something went wrong accessing the Javascript for this webpage")
+					tally["INACCESSIBLE"] += 1
+					encounteredJSError := True
+				}
+
+				Sleep 1000
+			}
+			else
+			{
+				rlf.Append(, m.wpmid . " does not have an existing account on Salesforce")
+			}
+
+			totalParsed += 1
+
+		}
+
+		this.Stop()
+
+		Logger.Timer(totalParsed . " merchant accounts updated on Salesforce", this.process)
+
+		temp := "
+		(
+		TIME ELAPSED: {1}
+		TOTAL SIZE:   {2}
+
+		EQUAL:        {3}
+		CHANGED:      {4}
+		INACCESSIBLE: {5}
+
+		)"
+
+		msgLines := Array(
+			this.process.ElapsedTime(),
+			merchantLength,
+			tally["EQUAL"],
+			tally["CHANGED"],
+			tally["INACCESSIBLE"]
+		)
+
+		body := Format(temp, msgLines*)
+		
+		if prompt = "Yes"
+		{
+			this.PrepareAndSendNotificationEmail(ol, body)
+			Logger.Append(this.className, "Email notification sent!")
+		}
+
+		MsgBox body
+	}
+}
+
 ; UpdateSalesforceFields is a RoutineObject that allows the user to update fields on Salesforce when it is given a custom Salesforce object. It uses that object to execute the updates on Salesforce via the Salesforce "UpdateFields" method.
 class UpdateSalesforceFields extends RoutineObject
 {
 	scheme := Array()
 	Init(className, apps, scheme?)
 	{
-		this.fub := apps.fub ; fub means Bookmark Field Updater. Its a class that updates bookmark fields, extended from SalesforceDB.
+		this.fub := apps.fub ; fub means Field Updater Bookmarklet. Its a class that updates bookmark fields, extended from SalesforceDB.
 		this.edge := apps.edge
 		this.ol := apps.ol
 		if IsSet(scheme)
@@ -870,15 +992,16 @@ class UpdateSalesforceFields extends RoutineObject
 		encounteredJSError := False
 
 		inPath := FileHandler.Config("Paths", "TempCSV")
-		outPath := FileHandler.Config("Resources", this.className)
-		rlf := Logger(FileHandler.Config("Paths", "RoutineLogs"), this.className)
+		outPath := FileHandler.Config("Resources", this.className) ; This is where the "memory" is written to.
+		rlf := Logger(FileHandler.Config("Paths", "RoutineLogs"), this.className) ; Routine Log File.
 
 		csv := FileHandler(inPath, outPath, this.className)
 
 		merchants := FileHandler.CreateMerchantArray(FileHandler.Config("Functions", this.className), this.scheme*)
 		accountIDs := DataHandler(FileHandler.Config("Resources", "AccountIDs"))
-		parseMap := DataHandler(outPath)
-		
+		parseMap := DataHandler(outPath) ; Create a DataStore from a CSV file stored in resources, aka memory.
+		tally := Map("INACCESSIBLE", 0, "CHANGED", 0, "EQUAL", 0)
+
 		this.Begin()
 		
 		Logger.Append(this.className, "Started")
@@ -895,8 +1018,6 @@ class UpdateSalesforceFields extends RoutineObject
 		merchantLength := merchants.length
 		sessionBatchAmount := Integer(FileHandler.Config("UpdateSalesforceFields", "sessionBatchAmount"))
 		sessionBatchAmount := (sessionBatchAmount > 0 ? sessionBatchAmount - 1 : sessionBatchAmount)
-
-		tally := Map("INACCESSIBLE", 0, "CHANGED", 0, "EQUAL", 0)
 
 		while (totalParsed <= merchantLength) and (totalComplete <= sessionBatchAmount)
 		{

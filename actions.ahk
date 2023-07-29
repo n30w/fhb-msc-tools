@@ -30,10 +30,10 @@ YesNoBox(t)
 	return MsgBox(t,, "YesNo")
 }
 
-DoesNotExist(n, l, v)
+DoesNotExist(n, v)
 {
 	m := v . " does not exist in DataStore. Check WP or SF."
-	l.Append(n, m)
+	Logger.Append(n, m)
 	return MsgBox(m,, "IconX")
 }
 
