@@ -969,6 +969,7 @@ class UpdateSalesforceFields extends RoutineObject
 	Do(passIndex := 1)
 	{
 		prompt := ""
+
 		if passIndex = 1
 			prompt := this.YesNoCancelBox("Would you like to send a notification email when routine is complete?", this.className)
 		
@@ -991,15 +992,16 @@ class UpdateSalesforceFields extends RoutineObject
 		fieldsAlreadyUpdated := False
 		encounteredJSError := False
 
-		inPath := FileHandler.Config("Paths", "TempCSV")
-		outPath := FileHandler.Config("Resources", this.className) ; This is where the "memory" is written to.
-		rlf := Logger(FileHandler.Config("Paths", "RoutineLogs"), this.className) ; Routine Log File.
+		memoryInputFilePath := FileHandler.Config(this.className, "MemoryInputFile")
+		memoryOutputFilePath := FileHandler.Config(this.className, "MemoryOutputFile") ; This is where the "memory" is written to.
+		
+		csv := FileHandler(memoryInputFilePath, memoryOutputFilePath, this.className, "RoutineScheme")
+		
+		rlf := Logger(FileHandler.Config("Paths", "RoutineLogs"), this.className) ; RLF = Routine Log File.
+		rlf.append(, "ACCOUNTS THAT DON'T HAVE SALESFORCE FDMID")
 
-		csv := FileHandler(inPath, outPath, this.className)
-
-		merchants := FileHandler.CreateMerchantArray(FileHandler.Config("Functions", this.className), this.scheme*)
-		accountIDs := DataHandler(FileHandler.Config("Resources", "AccountIDs"))
-		parseMap := DataHandler(outPath) ; Create a DataStore from a CSV file stored in resources, aka memory.
+		merchants := FileHandler.CreateMerchantArray(FileHandler.Config(this.className, "RoutineData"), this.scheme*)
+		parseMap := DataHandler(memoryOutputFilePath) ; Create a DataStore from the routine's CSV "memory" file stored in resources directory.
 		tally := Map("INACCESSIBLE", 0, "CHANGED", 0, "EQUAL", 0)
 
 		this.Begin()
@@ -1016,7 +1018,7 @@ class UpdateSalesforceFields extends RoutineObject
 		totalParsed := 1
 		totalComplete := 0
 		merchantLength := merchants.length
-		sessionBatchAmount := Integer(FileHandler.Config("UpdateSalesforceFields", "sessionBatchAmount"))
+		sessionBatchAmount := Integer(FileHandler.Config(this.className, "SessionBatchAmount"))
 		sessionBatchAmount := (sessionBatchAmount > 0 ? sessionBatchAmount - 1 : sessionBatchAmount)
 
 		while (totalParsed <= merchantLength) and (totalComplete <= sessionBatchAmount)
@@ -1038,7 +1040,7 @@ class UpdateSalesforceFields extends RoutineObject
 				continue
 			}
 
-			urlExists := fub.HasURL(m, accountIDs)
+			urlExists := fub.HasURL(m, "FDMID", "AccountID")
 			
 			if urlExists
 			{
@@ -1052,7 +1054,6 @@ class UpdateSalesforceFields extends RoutineObject
 
 				this.statBar.Show("Merchant: " . totalParsed . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Completed in Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString . "`r`n" . "Last Received Word: " . fieldsAlreadyUpdated . "`r`n" . "Pass: " . passIndex)
 				
-				; Sleep 4000
 				Sleep 1000
 
 				; Updates the fields, if there is a need to do that.
@@ -1089,7 +1090,7 @@ class UpdateSalesforceFields extends RoutineObject
 			}
 			else
 			{
-				rlf.Append(, m.fdmid . " does not have an existing account on Salesforce")
+				rlf.Append(m.fdmid)
 			}
 
 			totalParsed += 1
