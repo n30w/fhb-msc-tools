@@ -87,10 +87,10 @@ javascript: (function() {
         });
     }
 
-    function buildFieldRefMap(accountName, wpmid, fdmid, chain, superChain, tin, dda, openDate, closedDate, conversionDate) {
+    function buildFieldRefMap(accountName, wpmid, fdmid, chain, superChain, tin, dda, openDate, closedDate, conversionDate, fdChainID, fdCorpID) {
         let m = new Map();
-        let defaultHeaderFields = ["dba", "wpmid", "fdmid", "chain", "superChain", "tin", "dda", "openDate", "closedDate", "conversionDate"];
-        let pageFields = [accountName, wpmid, fdmid, chain, superChain, tin, dda, openDate, closedDate, conversionDate];
+        let defaultHeaderFields = ["dba", "wpmid", "fdmid", "chain", "superChain", "tin", "dda", "openDate", "closedDate", "conversionDate", "fdChainID", "fdCorpID"];
+        let pageFields = [accountName, wpmid, fdmid, chain, superChain, tin, dda, openDate, closedDate, conversionDate, fdChainID, fdCorpID];
         defaultHeaderFields.forEach(function(val, i) {
             m.set(val, pageFields[i]);
         });
@@ -122,8 +122,8 @@ javascript: (function() {
         let conversionDate = new sfElm("FD Conversion Date");
         let chain = new sfElm("WP Chain ID", "Chain_ID__c");
         let superChain = new sfElm("WP Super Chain ID");
-        let fdChainID = new sfElm("FD Chain ID");
-        let fdCorpID = new sfElm("FD Corp ID");
+        let fdChainID = new sfElm("FD Chain ID", "FD_Chain_ID__c");
+        let fdCorpID = new sfElm("FD Corp ID", "FD_Corp_ID__c");
         let dda = new sfElm("DDA");
         let tin = new sfElm("TIN #", "TIN__c");
 
@@ -155,7 +155,7 @@ javascript: (function() {
             });
         
         /** Wait for arbitrary field to load */
-
+        
         /* Check if any fields are not equal to any fields in the inputString given by AHK. */
         await myTimeout(() => {
             headerFieldsFromInputString.forEach(async function(val, i) {
