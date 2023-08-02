@@ -60,7 +60,7 @@ win := Windows(lg, ob, caps, ol)
 routine := Routines(lg, fo)
 
 getCAPSPage := GetCAPSAccount().Init("GetCAPSAccount", apps := {caps: caps})
-updateAccountFields := UpdateSalesforceFields().Init("SFUpdate1", apps := {fub: fub := FieldUpdaterBookmarklet(), edge: edge, ol: ol})
+updateAccountFields := UpdateSalesforceFields().Init("UpdateSalesforceFields", apps := {fub: fub := FieldUpdaterBookmarklet(), edge: edge, ol: ol})
 getSFConversionCase := GetSalesforcePage().Init("GetSalesforcePage", apps := {sf: sf})
 updateCaseFields := UpdateSalesforceCaseFields().Init("SFUpdate2", apps := {cub: cub := CaseUpdaterBookmarklet(), edge: edge, ol: ol})
 
