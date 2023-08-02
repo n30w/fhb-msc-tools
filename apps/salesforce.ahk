@@ -39,19 +39,19 @@ class SalesforceDB extends Application
 	; urlID builds a URL ID
 	urlID(s) => (s . this.convert15to18(s))
 
-	; HasURL checks if a merchant has a corresponding AccountID in the local DataStore(s). It returns True or False.
-	HasURL(m, d?)
+	; HasURL checks if a merchant has a corresponding AccountID in the local DataStore(s). It returns True or False. The "merchant" parameter is a merchant object, "key" is the lookup to retrieve the corresponding object in the DataStore, "value" is the value to retrieve from the retrieved object, and the "d" is an optional DataStore that the user provides.
+	HasURL(merchant, key, value, d?)
 	{
 		try
 		{
 			if IsSet(d)
-				this.FullURL := this.AccountURL(d.Retrieve(m.wpmid).AccountID)
+				this.FullURL := this.AccountURL(d.Retrieve(merchant.%key%).%value%)
 			else
-				this.FullURL := this.AccountURL(DataHandler.Retrieve(m.wpmid).AccountID)
+				this.FullURL := this.AccountURL(DataHandler.Retrieve(merchant.%key%).%value%)
 		}
 		catch
 		{
-			Logger.Append(this.HasURL.Name, "ERROR: Unable to retrieve merchant AccountID => " . m.wpmid . " does not exist in DataStore")
+			Logger.Append(this.HasURL.Name, "ERROR: Unable to retrieve merchant AccountID => " . merchant.%key% . " does not exist in DataStore")
 			return False
 		}
 		return True
@@ -270,7 +270,7 @@ class FieldUpdaterBookmarklet extends SalesforceDB
 		Send "{Right 1}"
 		Sleep 100
 		Send "{Enter down}"
-		Sleep 100
+		Sleep 160
 		Send "{Enter up}"
 		Sleep 400
 
