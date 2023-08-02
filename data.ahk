@@ -6,7 +6,7 @@ class DataHandler
 	; map of (string : object)
 	static DataStore := Map()
 	
-	; create the peristent store and keep it in memory
+	; create the persistent store and keep it in memory
 	static BuildStore(path)
 	{
 		col := Array()
@@ -178,11 +178,33 @@ class DataHandler
 					colIdx := A_Index
 					v := ""
 					if A_Index != this.Cols.length and colIdx != 1
+					{
 						v := this.Retrieve(String(orderIdx)).%this.Cols[colIdx]% . ","
+					}
 					else if A_Index = this.Cols.length
+					{
 						v := orderIdx . (lineNumber = fileLen ? "" : "`r`n" )
+					}
 					else
-						v := this.Retrieve(String(orderIdx)).wpmid . ","
+					{
+						try
+						{
+							v := this.Retrieve(String(orderIdx)).wpmid . ","
+						}
+						catch
+						{
+							Logger.Append(, "Failed to create file string using wpmid")
+						}
+
+						try
+						{
+							v := this.Retrieve(String(orderIDX)).fdmid . ","
+						}
+						catch
+						{
+							logger.Append(, "Failed to create file string using fdmid")
+						}
+					}
 					lineString .= v
 				}
 			}
@@ -474,23 +496,25 @@ class FileHandler
 
 	tmpPath := FileHandler.Config("Paths", "TempFiles")
 
-	__New(inPath?, outPath?, callerName?)
+	__New(inPath?, outPath?, callerName := "Defaults", schemeField := "Scheme") ; schemeField refers to the config.ini scheme's field for a routine.
 	{
 		; getScheme(path)
 		; {
 		; 	file := FileOpen(path, "r")
 		; 	return file.ReadLine()
 		; }
+
+		this.callerName := callerName
+
 		if IsSet(inPath)
 			this.inPath := inPath
+
 		if IsSet(outPath)
 		{
 			this.outPath := outPath
-			; this.Scheme := getScheme(outPath)
-			this.Scheme := FileHandler.Config("Defaults", "Scheme") ; Scheme of the CSV, aka its columns.
+			this.Scheme := FileHandler.Config(callerName, schemeField) ; Scheme of the CSV, aka its columns.
 		}
-		if IsSet(callerName)
-			this.callerName := callerName
+		
 	}
 	
 	Config(s, k) => IniRead("config.ini", s, k)
@@ -552,6 +576,8 @@ class Merchant
 	openDate := "none"
 	closedDate := "none"
 	conversionDate := "none"
+	fdCorpID := "none"
+	fdChainID := "none"
 
 	; CreateJSParseString assembles a string that the fieldUpdater.js code consumes. "sep" is what separates values. "link" is what joins together two arrays
 	CreateJSParseString(sep, link)
