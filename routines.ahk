@@ -38,7 +38,7 @@ class Routines
 		this.fileOps := fileOps
 		this.clock := Timer()
 		this.data := DataHandler()
-		this.sharedDrive := this.fileOps.Config("Paths", "SharedDrive")
+		this.sharedDrive := this.fileOps.Config("SharedDrive", "LocalWindowsPath")
 	}
 
 	; Attaches something to clippy and pastes it.
@@ -65,35 +65,6 @@ class Routines
 		return this
 	}
 	
-	; Pulls up account view on Salesforce.
-	GetSalesforceAccount(win, edge, sf)
-	{
-		mid := this.data.cb.Update()
-		mid := DataHandler.Sanitize(mid)
-		
-		if Clippy.IsEmpty(mid)
-			return this
-
-		try
-		{
-			this.data.cb.Board := sf.AccountURL(DataHandler.Retrieve(mid).AccountID)
-		}
-		catch
-		{
-			DoesNotExist(this.GetSalesforceAccount.Name, mid)
-			return
-		}
-		
-		win.FocusWindow(edge)
-		if not edge.TabTitleContains("Salesforce")
-			edge.NewTab()
-		edge.FocusURLBar()
-		this.data.cb.Paste()
-		Send "{Enter}"
-		this.data.cb.Clean()
-		return this
-	}
-
 	; Pulls up account view on Salesforce.
 	GetSalesforceConversionCase(win, edge, sf)
 	{
@@ -124,114 +95,6 @@ class Routines
 		Send "{Enter}"
 		Clippy.Shove(mid)
 		Sleep 500
-		return this
-	}
-
-	; Gets data from CAPS and puts it into email order template.
-	GenerateOrder(win, caps, ob)
-	{
-		wp := DataHandler.Sanitize(this.data.cb.Update())
-
-		if Clippy.IsEmpty(wp)
-			return this
-
-		dba := ""
-		fdmid := ""
-		fileExists := False
-		dbaExistsInDataStore := True
-		fdmidExistsInDataStore := True
-
-		try
-		{
-			; retrieve dba from DataStore
-			dba := DataHandler.Retrieve(wp).AccountName
-		}
-		catch
-		{
-			; if not in DataStore open caps and get the DBA from there
-			dbaExistsInDataStore := False
-		}
-
-		try
-		{
-			; retrieve fdmid from DataStore
-			fdmid := DataHandler.Retrieve(wp).FDMID ;( fdmid = "" ? "no FDMID found" : fdmid )
-		}
-		catch
-		{
-			fdmidExistsInDataStore := False
-		}
-		
-		; first check if the file even exists in merchant dir
-		fileName := FileHandler.RetrievePath("..\merchants", dba, "md")
-		if not (fileName = "none")
-			fileExists := True
-			
-		if fileExists
-		{
-			win.FocusWindow(ob)
-			ob.OpenOpenMenu(dba)
-		}
-		else
-		{	
-			tt := ob.templateText
-			
-			; copy stuff from CAPS
-			Clippy.Shove(wp)
-			
-			this.GetCAPSAccount(win, caps)
-			wp := DataHandler.Sanitize(this.data.cb.Board)
-			
-			Sleep 2100
-			
-
-			if not fdmidExistsInDataStore
-				fdmid := "=== check salesforce ==="
-
-			this.data.CopyFields(
-				caps.DBA,
-				caps.StoreAddr1,
-				caps.StoreAddr2,
-				caps.StoreCity,
-				caps.StoreState,
-				caps.StoreZip
-			)
-
-			if not dbaExistsInDataStore
-				dba := caps.DBA.val
-
-			; format data into a string
-			formattedTemplate := Format(
-				tt, 
-				dba,
-				wp,
-				fdmid
-			)
-			
-			; create shipping address, varies if StoreAddr2 has val
-			formattedTemplate .= Format( ( not (caps.StoreAddr2.val = "") ? ("
-			(
-			`n`t{1}
-			`t{2}
-			`t{3}, {4}
-			`t{5}
-
-			---`n
-			)") : "
-			(
-			`n`t{1}
-			`t{3}, {4}
-			`t{5}
-
-			---`n
-			)"), caps.StoreAddr1.val, caps.StoreAddr2.val, caps.StoreCity.val, caps.StoreState.val, caps.StoreZip.val) . ( caps.StoreState.val = "HI" ? "#Hawaii" : "#Guam-Saipan" ) . "`r`n"
-			
-			; import that formatted data into obsidian onto new document
-			win.FocusWindow(ob)
-			ob.OpenOpenMenu(( caps.StoreState.val = "HI" ? "Hawaii/" : "Guam-Saipan/" ) . dba)
-			this.AttachAndPaste(formattedTemplate)
-		}
-		Clippy.Shove(wp)
 		return this
 	}
 
@@ -383,27 +246,27 @@ class Routines
 		; Regex pattern for emails, kindly given by ChatGPT
 		emailPattern := "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"
 
-		try
+		try dba := DataHandler.Retrieve(wpmid).AccountName
+		catch ; if it doesn't exist in DS, go to CAPS to get it
 		{
-			dba := DataHandler.Retrieve(wpmid).AccountName
-		}
-		catch
-		{
-			; if it doesn't exist in DS, go to CAPS to get it
-			win.FocusWindow(caps)
+			Windows.FocusWindow(caps)
 			this.data.CopyFields(caps.DBA)
 			dba := caps.DBA.val
 		}
 		
-		; get email from .md file
 		; get name of .md file
 		mdPath := FileHandler.RetrievePath("..\merchants", dba, "md")
+
+		; get email from .md file
 		email := FileHandler.MatchPatternInFile(mdPath, emailPattern)
 
-		win.FocusWindow(ol)
+		Windows.FocusWindow(ol)
+		
 		Sleep 100
+		
 		ol.AccessMenuItem("y")
 		ol.SendClosureMacro()
+		
 		Sleep 100
 		
 		; email[] because the brackets return the sub pattern
@@ -562,32 +425,7 @@ class Routines
 			FileAppend(ci . "`r`n", outFile)
 		}
 		this.logger.Append(this.ConvertMIDToCaseID.Name, "Completed!")
-		MsgBox "Convert Mid to Case ID complete"
-	}
-
-	; Given any merchant attribute, opens a small window with fields from that entry point.
-	DataStoreQuickLook()
-	{
-		c := this.data.cb.Update()
-		if Clippy.IsEmpty(c)
-			return this
-		try
-		{
-			r := DataHandler.Retrieve(DataHandler.Sanitize(c))
-		}
-		catch
-		{
-			DoesNotExist(this.DataStoreQuickLook.Name, c)
-			return
-		}
-		
-		s := ""
-		for k, v in r.OwnProps()
-		{
-			s .= k . ": " . v . "`n" 
-		}
-		
-		MsgBox(s, "Lookup " . c)
+		MsgBox "Convert MID to Case ID complete"
 	}
 
 	tryGetDBA(win, caps, data, wpmid?)
@@ -724,9 +562,168 @@ class RoutineObject
 		Sleep 1000
 		ol.SendEmail2()
 	}
+
+	; Attaches something to clippy and pastes it.
+	AttachAndPaste(s)
+	{
+		Clippy.Shove(s)
+		Sleep 250
+		Clippy.Paste()
+	}
 }
 
 ; ROUTINE OBJECTS ;
+
+class GenerateOrder extends RoutineObject
+{
+	Init(className, apps)
+	{
+		this.className := className
+		this.apps := apps
+
+		return this
+	}
+
+	Do()
+	{
+		ob := this.apps.ob
+		caps := this.apps.caps
+		gca := this.apps.gca
+
+		wp := A_Clipboard
+
+		if Clippy.IsEmpty(wp)
+			return this
+
+		dba := ""
+		fdmid := ""
+		fileExists := False
+		dbaExistsInDataStore := True
+		fdmidExistsInDataStore := True
+
+		this.Begin()
+
+		try dba := DataHandler.Retrieve(wp).AccountName
+		catch 
+			dbaExistsInDataStore := False ; if not in DataStore open caps and get the DBA from there
+
+		try fdmid := DataHandler.Retrieve(wp).FDMID ;( fdmid = "" ? "no FDMID found" : fdmid )
+		catch 
+			fdmidExistsInDataStore := False
+		
+		; first check if the file even exists in merchant dir
+		fileName := FileHandler.RetrievePath("..\merchants", dba, "md")
+		if not (fileName = "none")
+			fileExists := True
+			
+		if fileExists
+		{
+			Windows.FocusWindow(ob)
+			ob.OpenOpenMenu(dba)
+		}
+		else
+		{	
+			tt := ob.templateText
+			
+			; copy stuff from CAPS
+			Clippy.Shove(wp)
+			
+			gca.Do() ; GetCAPSAccount
+			wp := DataHandler.Sanitize(A_Clipboard)
+			
+			Sleep 2100
+			
+			if not fdmidExistsInDataStore
+				fdmid := "=== check salesforce ==="
+
+			DataHandler.CopyFields(
+				caps.DBA,
+				caps.StoreAddr1,
+				caps.StoreAddr2,
+				caps.StoreCity,
+				caps.StoreState,
+				caps.StoreZip
+			)
+
+			if not dbaExistsInDataStore
+				dba := caps.DBA.val
+
+			; format data into a string
+			formattedTemplate := Format(
+				tt, 
+				dba,
+				wp,
+				fdmid
+			)
+			
+			; create shipping address, varies if StoreAddr2 has val
+			formattedTemplate .= Format( ( not (caps.StoreAddr2.val = "") ? ("
+			(
+			`n`t{1}
+			`t{2}
+			`t{3}, {4}
+			`t{5}
+
+			---`n
+			)") : "
+			(
+			`n`t{1}
+			`t{3}, {4}
+			`t{5}
+
+			---`n
+			)"), caps.StoreAddr1.val, caps.StoreAddr2.val, caps.StoreCity.val, caps.StoreState.val, caps.StoreZip.val) . ( caps.StoreState.val = "HI" ? "#Hawaii" : "#Guam-Saipan" ) . "`r`n"
+			
+			; import that formatted data into obsidian onto new document
+			Windows.FocusWindow(ob)
+			ob.OpenOpenMenu(( caps.StoreState.val = "HI" ? "Hawaii/" : "Guam-Saipan/" ) . dba)
+			this.AttachAndPaste(formattedTemplate)
+		}
+
+		this.Stop()
+
+		Clippy.Shove(wp)
+		return this
+	}
+}
+
+; DataStoreQuickLookup means DataStore Quick Look, letting the user lookup any MID in the DataStore and see its information.
+class DataStoreQuickLookup extends RoutineObject
+{
+	Init(className, apps)
+	{
+		this.className := className
+		this.apps := apps
+
+		return this
+	}
+
+	Do()
+	{
+		className := this.className
+
+		this.Begin()
+
+		c := A_Clipboard
+		if Clippy.IsEmpty(c)
+			return this
+		
+		try r := DataHandler.Retrieve(DataHandler.Sanitize(c))
+		catch
+		{
+			DoesNotExist(className, c)
+			return
+		}
+		
+		s := ""
+		for k, v in r.OwnProps()
+			s .= k . ": " . v . "`n"
+		
+		this.Stop()
+
+		MsgBox(s, "Lookup " . c)
+	}
+}
 
 ; GetCAPSAccount pulls up CAPS and searches it for a single MID.
 class GetCAPSAccount extends RoutineObject
@@ -748,9 +745,7 @@ class GetCAPSAccount extends RoutineObject
 
 		mid := DataHandler.Sanitize(A_Clipboard)
 		if Clippy.IsEmpty(mid)
-		{
 			Logger.Append(className, "Clipboard empty! Exiting...")
-		}
 		else
 		{
 			Windows.FocusWindow(caps)
@@ -779,6 +774,8 @@ class GetSalesforcePage extends RoutineObject
 	{
 		className := this.className
 		sf := this.apps.sf
+		edge := this.apps.edge
+		
 		mid := ""
 
 		this.Begin()
@@ -786,14 +783,9 @@ class GetSalesforcePage extends RoutineObject
 		if IsSet(m)
 			mid := m
 		else
-		{
 			mid := DataHandler.Sanitize(A_Clipboard)
-		}
 		
-		try
-		{
-			Clippy.Shove(sf.CaseURL(DataHandler.Retrieve(mid).CaseID))
-		}
+		try Clippy.Shove(sf.CaseURL(DataHandler.Retrieve(mid).CaseID))
 		catch
 		{
 			DoesNotExist(className, mid)
@@ -801,14 +793,17 @@ class GetSalesforcePage extends RoutineObject
 		}
 
 		Sleep 500
-		win.FocusWindow(edge)
+		
+		Windows.FocusWindow(edge)
 		if not edge.TabTitleContains("Salesforce")
 			edge.NewTab()
 		else
 			edge.FocusURLBar()
 		Clippy.Paste()
 		Send "{Enter}"
+
 		Clippy.Shove(mid)
+		
 		Sleep 500
 
 		this.Stop()

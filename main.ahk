@@ -8,22 +8,20 @@
 ; globally set CoordMode to Mouse and Window
 CoordMode "Mouse", "Window"
 
+; Set where the system logs will be stored.
+Logger.SetFilePath(FileHandler.Config("Paths", "SystemLogs"))
+
+; Build the DataStore for RAM access.
+DataHandler.BuildStore("resources\data\data.csv")
+
 fo := FileHandler()
 lg := Logger(fo.Config("Paths", "SystemLogs"))
 ps := Powershell("Powershell",,,)
 
-Logger.SetFilePath(fo.Config("Paths", "SystemLogs"))
-
-LogStopReason(ExitReason, ExitCode)
+; Initialize shared drive.
 {
-	Routines.Cease()
-	Logger.Append(, "===== Stopping due to " . ExitReason . " =====")
-}
-
-; initialize shared drive
-{
-	sharedDrive := fo.Config("Paths", "SharedDrive")
-	mountPath := fo.Config("Paths", "MountPath")
+	sharedDrive := FileHandler.Config("SharedDrive", "LocalWindowsPath")
+	mountPath := FileHandler.Config("SharedDrive", "NetworkMountPath")
 	acnamagent := ProcessWait("acnamagent.exe", 18) ; wait to get on local network
 	loadShared := True
 
@@ -38,10 +36,7 @@ LogStopReason(ExitReason, ExitCode)
 		Run(ps.OpenShared("openShared.ps1", sharedDrive, mountPath))
 }
 
-; build the DataStore for RAM access
-DataHandler.BuildStore("resources\data\data.csv")
-
-; initialize all applications
+; Initialize all applications.
 {
 	caps := CapsDB("CAPS",, "CAPS.appref-ms", "ahk_exe CAPS.exe")
 	excel := MSExcel("ExcelDB", fo.Config("Paths", "IOInputPath"), "feecodes.xlsm", "feecodes - Excel")
@@ -53,18 +48,35 @@ DataHandler.BuildStore("resources\data\data.csv")
 	ob := ObsidianVault("Obsidian",, "obsidian.lnk", "ahk_exe Obsidian.exe")
 }
 
-; windows to initialize on script startup
-win := Windows(lg, ob, caps, ol)
+; windows to initialize and open on script startup
+win := Windows(ob, caps, ol)
 
-; initialize routines
+; Initialize routines.
 routine := Routines(lg, fo)
 
+dsQuickLookup := DataStoreQuickLookup().Init("DataStoreQuickLookup", apps := {})
 getCAPSPage := GetCAPSAccount().Init("GetCAPSAccount", apps := {caps: caps})
-updateAccountFields := UpdateSalesforceFields().Init("UpdateSalesforceFields", apps := {fub: fub := FieldUpdaterBookmarklet(), edge: edge, ol: ol})
-getSFConversionCase := GetSalesforcePage().Init("GetSalesforcePage", apps := {sf: sf})
-updateCaseFields := UpdateSalesforceCaseFields().Init("SFUpdate2", apps := {cub: cub := CaseUpdaterBookmarklet(), edge: edge, ol: ol})
+getSFConversionCase := GetSalesforcePage().Init("GetSalesforcePage", apps := {sf: sf, edge: edge})
+updateAccountFields := UpdateSalesforceFields().Init("UpdateSalesforceFields", 
+apps := {
+	fub: fub := FieldUpdaterBookmarklet(), 
+	edge: edge, 
+	ol: ol
+})
+updateCaseFields := UpdateSalesforceCaseFields().Init("SFUpdate2", 
+apps := {
+	cub: cub := CaseUpdaterBookmarklet(), 
+	edge: edge, 
+	ol: ol
+})
+generateMerchantOrder := GenerateOrder().Init("GenerateOrder",
+apps := {
+	ob: ob,
+	caps: caps,
+	gca: getCAPSPage
+})
 
-Routines.Load(updateAccountFields, getCAPSPage, getSFConversionCase, updateCaseFields)
+Routines.Load(updateAccountFields, getCAPSPage, getSFConversionCase, updateCaseFields, dsQuickLookup)
 
 ; open windows if not already open
 win.Initialize()
@@ -88,11 +100,15 @@ Logger.Append(, "Session started! Time to make money...")
 	
 	F8:: getCAPSPage.Do()
 	^F8:: getSFConversionCase.Do()
-	^+F8:: routine.GetCAPSAccount(win, caps).GetSalesforceAccount(win, edge, sf)
+	^+F8::
+	{
+		getCAPSPage.Do()
+		getSFConversionCase.Do()
+	}
 	
 	F9:: routine.GenerateOrder(win, caps, ob)
 	
-	F10:: routine.DataStoreQuickLook()
+	F10:: dsQuickLookup.Do()
 	
 	^F11:: routine.ExportPDFsToAudit(win, caps, excel)
 	F11:: caps.Start()
@@ -111,3 +127,9 @@ F12::
 }
 
 OnExit LogStopReason
+
+LogStopReason(ExitReason, ExitCode)
+{
+	Routines.Cease()
+	Logger.Append(, "===== Stopping due to " . ExitReason . " =====")
+}

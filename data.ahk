@@ -65,6 +65,16 @@ class DataHandler
 		}
 	}
 
+	; CopyFields receives a variadic parameter of fields, and goes through each item in it setting the field's respective value.
+	static CopyFields(fields*)
+	{
+		Clippy.Shove("")
+		for f in fields
+		{
+			f.val := Clippy.ClickAndCopy(f.X, f.Y)
+		}
+	}
+
 	; Code below is for instance specific datastores, and may be used when a routine requires ephemeral input k/v storage
 
 	__New(path?)
@@ -213,7 +223,7 @@ class DataHandler
 		return fileString
 	}
 	
-	; CopyFields receives a variadic parameter of fields, and goes through each item in it setting their respective values.
+	; CopyFields receives a variadic parameter of fields, and goes through each item in it setting the field's respective value.
 	CopyFields(fields*)
 	{
 		this.cb.Clean()
@@ -227,15 +237,32 @@ class DataHandler
 ; abstracts away A_Clipboard
 class Clippy
 {
+
+	static Board := ""
+
 	; access A_Clipboard directly. Shove a value into it!
 	static Shove(v) => A_Clipboard := v
 	
+	static Copy()
+	{
+		Sleep 50
+		Send "^c"
+		Sleep 50
+		return A_Clipboard
+	}
+
 	static Paste()
 	{
 		Send "^v"
 		Sleep 100
 		Clippy.emptyA_Clipboard()
 		return this
+	}
+
+	static Attach(s)
+	{
+		Clippy.Board := s
+		Clippy.emptyA_Clipboard()
 	}
 
 	static IsEmpty(m)
@@ -252,6 +279,13 @@ class Clippy
 	}
 
 	static emptyA_Clipboard() => A_Clipboard := ""
+
+	static ClickAndCopy(x, y)
+	{
+		Click(x, y)
+		Sleep 100
+		return Clippy.Copy()
+	}
 
 	Board := ""
 	
@@ -498,12 +532,6 @@ class FileHandler
 
 	__New(inPath?, outPath?, callerName := "Defaults", schemeField := "Scheme") ; schemeField refers to the config.ini scheme's field for a routine.
 	{
-		; getScheme(path)
-		; {
-		; 	file := FileOpen(path, "r")
-		; 	return file.ReadLine()
-		; }
-
 		this.callerName := callerName
 
 		if IsSet(inPath)
@@ -522,12 +550,11 @@ class FileHandler
 	StringToCSV(str)
 	{
 		newFileName := this.tmpPath . this.callerName . ".csv"
-		;try FileRecycle newFileName
+
 		FileAppend str, this.inPath
 
 		try FileMove this.inPath, newFileName
 		try FileMove this.inPath, this.outPath, 1
-		;try FileRecycle newFileName
 	}
 
 	; Captures order from a file
@@ -565,7 +592,7 @@ class Merchant
 	; Scheme for columns (abc, xyz, ...).
 	scheme := Array()
 	
-	; General merchant information
+	; General merchant information.
 	dba := "none"
 	wpmid := "none"
 	fdmid := "none"
@@ -579,7 +606,7 @@ class Merchant
 	fdCorpID := "none"
 	fdChainID := "none"
 
-	; CreateJSParseString assembles a string that the fieldUpdater.js code consumes. "sep" is what separates values. "link" is what joins together two arrays
+	; CreateJSParseString assembles a string that the fieldUpdater.js code consumes. "sep" is the symbol that separates values. "link" is the symbol that joins two arrays together.
 	CreateJSParseString(sep, link)
 	{
 		; Assemble the string to be delivered to Javascript via clipboard.
@@ -660,7 +687,9 @@ class Queue extends AbstractDataStructure
 
 class Stack extends AbstractDataStructure
 {
+	; Push puts an element onto the top of the stack.
 	Push(el) => this.arr.Push(el)
 
+	; Pop removes an element from the top of the stack.
 	Pop() => this.arr.Pop()
 }

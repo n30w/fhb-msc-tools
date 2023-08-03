@@ -35,9 +35,8 @@ class Windows
 
 	ProcessList := Array()
 	
-	__New(logger, processes*) ; append processes to ProcessList
+	__New(processes*) ; append processes to ProcessList
 	{
-		this.logger := logger
 		for app in processes
 		{
 			this.ProcessList.Push(app)
@@ -47,13 +46,13 @@ class Windows
 	; Initialize all necessary windows 
 	Initialize()
 	{
-		this.logger.Append(,"Initializing windows...")
+		Logger.Append(,"Initializing windows...")
 		for app in this.ProcessList
 		{
 			if not this.WinExists(app)
 				app.Start()
 		}
-		this.logger.Append(,"Successfully initialized windows")
+		Logger.Append(,"Successfully initialized windows")
 	}
 	
 	WinExists(app)
