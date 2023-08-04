@@ -87,24 +87,30 @@ javascript: (function() {
         });
     }
 
-    function buildFieldRefMap(accountName, wpmid, fdmid, chain, superChain, tin, dda, openDate, closedDate, conversionDate, fdChainID, fdCorpID) {
+    function buildFieldRefMap(accountName, wpmid, fdmid, chain, superChain, tin, dda, openDate, closedDate, conversionDate, fdChainID, fdCorpID, closureReason) {
         let m = new Map();
-        let defaultHeaderFields = ["dba", "wpmid", "fdmid", "chain", "superChain", "tin", "dda", "openDate", "closedDate", "conversionDate", "fdChainID", "fdCorpID"];
-        let pageFields = [accountName, wpmid, fdmid, chain, superChain, tin, dda, openDate, closedDate, conversionDate, fdChainID, fdCorpID];
+        let defaultHeaderFields = ["dba", "wpmid", "fdmid", "chain", "superChain", "tin", "dda", "openDate", "closedDate", "conversionDate", "fdChainID", "fdCorpID", "closureReason"];
+        let pageFields = [accountName, wpmid, fdmid, chain, superChain, tin, dda, openDate, closedDate, conversionDate, fdChainID, fdCorpID, closureReason];
         defaultHeaderFields.forEach(function(val, i) {
             m.set(val, pageFields[i]);
         });
         return m;
     }
 
+    const elmType = Object.freeze({
+        INPUT_FIELD: Symbol("inputField"),
+        DROPDOWN_MENU: Symbol("dropdown")
+    });
+
     class sfElm {
-        constructor(fieldLabel, inputFieldName = "none") {
+        constructor(fieldLabel, inputFieldName = "none", type = elmType.INPUT_FIELD) {
             this.propFieldLabel = fieldLabel;
             this.btnTitle = "Edit " + fieldLabel;
             this.textInput = (inputFieldName === "none" ? fieldLabel.split(' ').join('_') + "__c" : inputFieldName );
             this.value = "none";
             this.newValue = "none";
             this.isEqual = true;
+            this.type = type;
         }
 
         async getValue() {
@@ -127,7 +133,9 @@ javascript: (function() {
         let dda = new sfElm("DDA");
         let tin = new sfElm("TIN #", "TIN__c");
 
-        let fieldRef = buildFieldRefMap(accountName, wpmid, fdmid, chain, superChain, tin, dda, openDate, closedDate, conversionDate, fdChainID, fdCorpID);
+        let closureReason = new sfElm("Closure Reason", "none", elmType.DROPDOWN_MENU);
+
+        let fieldRef = buildFieldRefMap(accountName, wpmid, fdmid, chain, superChain, tin, dda, openDate, closedDate, conversionDate, fdChainID, fdCorpID, closureReason);
 
         let inputString = ""; /* get clipboard string here */
         let allEqual = true;
@@ -135,11 +143,8 @@ javascript: (function() {
         let fieldValuesFromInputString;
         let headerFieldsFromInputString;
 
+        /* Wait for arbitrary field to load so DOM can refocus */
         console.log("=== START ===");
-
-        /*await myTimeout(() => {
-            console.log("Waiting for DOM focus...");
-        }, 400);*/
         
         const elm = await waitForElm("//records-record-layout-item[@field-label='Closed Date']");
 
@@ -154,8 +159,6 @@ javascript: (function() {
                 console.log("HEADERS: " + headerFieldsFromInputString);
             });
         
-        /** Wait for arbitrary field to load */
-        
         /* Check if any fields are not equal to any fields in the inputString given by AHK. */
         await myTimeout(() => {
             headerFieldsFromInputString.forEach(async function(val, i) {
@@ -166,9 +169,11 @@ javascript: (function() {
                     allEqual = false;
                     fr.isEqual = false;
                     fr.newValue = fieldValuesFromInputString[i];
-                    console.log("INEQUALITY FOUND: " + val + " (" + fr.value + " => " + fr.newValue + ")");
+                    if (fr.value == null) {
+                        fr.value = "--None--";
+                    }
+                    console.log("INEQUALITY FOUND: " + val + " (" + fr.value + " => " + fr.newValue + ")");        
                 }
-
             });
         }, 300);
 
@@ -177,20 +182,30 @@ javascript: (function() {
             try {
                 /* Exit program if equal */
                 const exitPromise = await assertEqual(allEqual);
-                /* arbitrary button selection, just needs to get Salesforce page into edit field mode*/
-                await clickButton(exitPromise, "title", "Edit Closed Date");
+                /* arbitrary edit button selection, just needs to get Salesforce page into edit field mode*/
+                await clickButton(exitPromise, "title", "Edit Closure Reason");
                 await myTimeout(async () => {
                     if (!exitPromise) {
                         const editBtn = await waitForElm("//button[@name='SaveEdit']");
                         myTimeout(() => {
-                            let fr;
                             headerFieldsFromInputString.forEach(async function(val) {
-                                fr = fieldRef.get(val);
+                                let fr = fieldRef.get(val);
                                 if (!fr.isEqual) {
-                                    let selection = getSingleNode(inputField(fr.textInput));
-                                    console.log("EDITING: " + fr.textInput);
-                                    selection.value = fr.newValue;
-                                    selection.dispatchEvent(new Event("change"));
+                                    switch (fr.type) {
+                                        case elmType.INPUT_FIELD:
+                                            let selection = getSingleNode(inputField(fr.textInput));
+                                            selection.value = fr.newValue;
+                                            selection.dispatchEvent(new Event("change"));
+                                        case elmType.DROPDOWN_MENU:
+                                            const dropdown = await waitForElm("//button[@aria-label='" + fr.propFieldLabel + ", " + fr.value + "']");
+                                            await myTimeout(() => {
+                                                dropdown.click();
+                                            }, 400);
+                                            const dropdownItem = await waitForElm("//lightning-base-combobox-item[@data-value='" + fr.newValue +"']");
+                                            await myTimeout(() => {
+                                                dropdownItem.click();
+                                            });
+                                    }
                                 }
                             }, 300);
                         }).then(() => {
@@ -206,7 +221,6 @@ javascript: (function() {
                 console.log(e);
             }
         }, 1000);
-        console.log("=== COMPLETE ===");
     }
 
     main();
