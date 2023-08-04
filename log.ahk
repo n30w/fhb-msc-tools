@@ -38,7 +38,7 @@ class Logger
 		Logger.Append(, "===== " . msg . " [" . t.ElapsedTime() . "]" . " =====")
 		t.Reset()
 	}
-
+	
 	GetFileDateTime() => FormatTime(,"yyyyMMdd-hhmmsstt")
 	GetEntryDateTime() => FormatTime(,"hh:mm:ss tt")
 	

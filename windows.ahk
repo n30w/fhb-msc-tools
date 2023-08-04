@@ -33,26 +33,23 @@ class Windows
 		}
 	}
 
-	ProcessList := Array()
-	
-	__New(processes*) ; append processes to ProcessList
+	static ProcessList := Array()
+
+	static Init(processes*)
 	{
-		for app in processes
+		; Add applications to the list of applications (processes) currently needed to run.
+		Windows.ProcessList := processes
+
+		; Start applications if they aren't currently open.
+		Logger.Append(, "Initializing applications and their windows...")
+
+		for app in Windows.ProcessList
 		{
-			this.ProcessList.Push(app)
-		}
-	}
-	
-	; Initialize all necessary windows 
-	Initialize()
-	{
-		Logger.Append(,"Initializing windows...")
-		for app in this.ProcessList
-		{
-			if not this.WinExists(app)
+			if not Windows.WinExists(app)
 				app.Start()
 		}
-		Logger.Append(,"Successfully initialized windows")
+		
+		Logger.Append(, "Applications and their windows ready to go")
 	}
 	
 	WinExists(app)

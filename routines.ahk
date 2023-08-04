@@ -12,10 +12,12 @@ class Routines
 	; Load wanted routines into the Singleton RoutineList.
 	static Load(rs*)
 	{
+		Logger.Append(, "Loading Routines...")
 		Loop rs.length
 		{
 			Routines.RoutineList.Enqueue(rs[A_Index])
 		}
+		Logger.Append(, "Routines ready to go")
 	}
 
 	; Cease destroys all current running routines.
@@ -32,72 +34,6 @@ class Routines
 		}
 	}
 
-	__New(logger, fileOps)
-	{
-		this.logger := logger
-		this.fileOps := fileOps
-		this.clock := Timer()
-		this.data := DataHandler()
-		this.sharedDrive := this.fileOps.Config("SharedDrive", "LocalWindowsPath")
-	}
-
-	; Attaches something to clippy and pastes it.
-	AttachAndPaste(s)
-	{
-		this.data.cb.Attach(s)
-		Sleep 250
-		this.data.cb.Paste()
-	}
-	
-	; Searches CAPS for a single MID.
-	GetCAPSAccount(win, caps)
-	{
-		mid := this.data.cb.Update()
-		mid := DataHandler.Sanitize(mid)
-
-		if Clippy.IsEmpty(mid)
-			return this
-
-		win.FocusWindow(caps)
-		caps.clickBinocularAndSearch(mid)
-		Sleep 200
-		Clippy.Shove(mid)
-		return this
-	}
-	
-	; Pulls up account view on Salesforce.
-	GetSalesforceConversionCase(win, edge, sf)
-	{
-		mid := ""
-		if IsSet(m)
-			mid := m
-		else
-		{
-			mid := DataHandler.Sanitize(A_Clipboard)
-		}
-		
-		try
-		{
-			this.data.cb.Board := sf.CaseURL(DataHandler.Retrieve(mid).CaseID)
-		}
-		catch
-		{
-			DoesNotExist(this.GetSalesforceConversionCase.Name, mid)
-			return
-		}
-		Sleep 500
-		win.FocusWindow(edge)
-		if not edge.TabTitleContains("Salesforce")
-			edge.NewTab()
-		else
-			edge.FocusURLBar()
-		this.data.cb.Paste()
-		Send "{Enter}"
-		Clippy.Shove(mid)
-		Sleep 500
-		return this
-	}
-
 	; Exports CAPS and Excel PDFs to corresponding folders for auditing purposes.
 	ExportPDFsToAudit(win, caps, excel)
 	{
@@ -110,8 +46,8 @@ class Routines
 		statBar := StatusBar()
 
 		accountNames := DataHandler(FileHandler.Config("Resources", "AccountNames"))
-		outFile := Format(this.fileOps.Config("Paths", "RoutineLogs") . "ExportPDFSToAudit-{1}.txt", this.logger.getFileDateTime())
-		LoadingZone := this.fileOps.Config("Paths", "IOOutputPath") . "auditing\"
+		outFile := Format(FileHandler.Config("Paths", "RoutineLogs") . "ExportPDFSToAudit-{1}.txt", Logger.GetFileDateTime())
+		LoadingZone := FileHandler.Config("Paths", "IOOutputPath") . "auditing\"
 		merchants := FileHandler.CreateMerchantArray("midtopdf.txt", "wpmid", "fdmid", "dba")
 
 		funcName := this.getFuncName(A_ThisFunc)
@@ -129,7 +65,7 @@ class Routines
 		else
 			exportFDMS := false
 
-		this.logger.append(funcName, "Starting export...")		
+		Logger.Append(funcName, "Starting export...")		
 		
 		stopwatch := Timer()
 		stopwatch.StartTimer()
@@ -172,7 +108,7 @@ class Routines
 				try FileMove currentCAPSPDFPath, MerchantDir, 1
 				catch as e
 				{
-					this.logger.Append(caps, Format("{1} {2} {3} - ERROR: {4}", merchant.dba, merchant.wpmid, merchant.fdmid, e.What))
+					Logger.Append(caps, Format("{1} {2} {3} - ERROR: {4}", merchant.dba, merchant.wpmid, merchant.fdmid, e.What))
 					FileDelete currentCAPSPDFPath
 				}
 				Sleep 1000
@@ -195,7 +131,7 @@ class Routines
 					{
 						;updateStatusBar("Current merchant has no fee codes... making note of that")
 						FileAppend(noteName, MerchantDir . "\" . noteName . ".txt")
-						this.logger.Append(excel, merchant.dba . " " . merchant.fdmid . " has no listings in Account Fee Code Listings")
+						Logger.Append(excel, merchant.dba . " " . merchant.fdmid . " has no listings in Account Fee Code Listings")
 						Clippy.Shove("")
 						Sleep 300
 					}
@@ -207,7 +143,7 @@ class Routines
 						try FileMove currentFDMSPDFPath, MerchantDir, 1
 						catch as e
 						{
-							this.logger.Append(caps, Format("{1} {2} {3} - ERROR: {4}", merchant.dba, merchant.wpmid, merchant.fdmid, e.What))
+							Logger.Append(caps, Format("{1} {2} {3} - ERROR: {4}", merchant.dba, merchant.wpmid, merchant.fdmid, e.What))
 							FileDelete currentFDMSPDFPath
 						}
 						Sleep 1200
@@ -215,7 +151,7 @@ class Routines
 				}
 			}
 			
-			this.logger.Append(funcName, "Export of " .  merchant.dba . " " . merchant.wpmid . " " . merchant.fdmid . " completed")
+			Logger.Append(funcName, "Export of " .  merchant.dba . " " . merchant.wpmid . " " . merchant.fdmid . " completed")
 			FileAppend(merchant.wpmid . "`t" . merchant.fdmid . "`r`n", outFile)
 
 			Clippy.Shove("")
@@ -226,140 +162,9 @@ class Routines
 		statBar.Reset()
 
 		stopwatch.StopTimer()
-		this.logger.Timer(merchants.length . " merchants exported.", stopwatch)
+		Logger.Timer(merchants.length . " merchants exported.", stopwatch)
 		
 		MsgBox "PDF Export Complete"
-	}
-	
-	; Creates a closure email in Outlook given a MID.
-	PrepareClosureFormEmail(win, caps, ol)
-	{
-		wpmid := A_Clipboard
-		
-		if Clippy.IsEmpty(wpmid)
-			return this
-
-		dba := ""
-		mdPath := ""
-		email := "Not Found"
-
-		; Regex pattern for emails, kindly given by ChatGPT
-		emailPattern := "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"
-
-		try dba := DataHandler.Retrieve(wpmid).AccountName
-		catch ; if it doesn't exist in DS, go to CAPS to get it
-		{
-			Windows.FocusWindow(caps)
-			this.data.CopyFields(caps.DBA)
-			dba := caps.DBA.val
-		}
-		
-		; get name of .md file
-		mdPath := FileHandler.RetrievePath("..\merchants", dba, "md")
-
-		; get email from .md file
-		email := FileHandler.MatchPatternInFile(mdPath, emailPattern)
-
-		Windows.FocusWindow(ol)
-		
-		Sleep 100
-		
-		ol.AccessMenuItem("y")
-		ol.SendClosureMacro()
-		
-		Sleep 100
-		
-		; email[] because the brackets return the sub pattern
-		; https://www.autohotkey.com/docs/v2/lib/RegExMatch.htm#MatchObject
-		ol.To(email[]).CC().Subject("Close Account Request Form - " . dba . " (" . wpmid . ")").Body()
-	}
-
-	; Creates a conversion email in Outlook given a MID.
-	PrepareConversionEmail(win, caps, ol)
-	{
-		wpmid := A_Clipboard
-
-		if Clippy.IsEmpty(wpmid)
-			return this
-
-		dba := ""
-		mdPath := ""
-		order := ""
-
-		try
-		{
-			dba := DataHandler.Retrieve(wpmid).AccountName
-		}
-		catch
-		{
-			; if it doesn't exist in DS, go to CAPS to get it
-			win.FocusWindow(caps)
-			Sleep 300
-			this.data.CopyFields(caps.DBA)
-			dba := caps.DBA.val
-		}
-		
-		; Find the correct md file to read
-		mdPath := FileHandler.RetrievePath(FileHandler.Config("Paths", "MerchantMDs"), dba, "md")
-		
-		if mdPath = "none"
-		{
-			MsgBox "Unable to retrieve .md path"
-		}
-		else
-		{
-			order := this.fileOps.ReadOrder(mdPath)		
-		}
-		
-		win.FocusWindow(ol)
-		Sleep 100
-		ol.AccessMenuItem("y").SendOrderMacro()
-
-		WinWaitActive "Ready For Conversion -  - Message (Rich Text) "
-
-		ol.GoToSubjectLineFromBody()
-		Send "{End}"
-		Send dba . " (" . wpmid . ")"
-		ol.GoToMiddleOfBodyFromSubjectLine()
-		
-		Send order
-	}
-
-	; Prepares and sends a notification email about a routine that has finished, or anything for that matter.
-	PrepareAndSendNotificationEmail(win, ol, routineName, elapsedTime, customText?)
-	{
-		subject := "[ROUTINE COMPLETE] " . routineName .  " - " . Logger.GetFileDateTime()
-		body := routineName . " finished in " . elapsedTime
-
-		if IsSet(customText)
-			body := customText
-
-		win.FocusWindow(ol)
-		ol.CreateNewEmail().To(FileHandler.Config("Fields", "MyEmail")).CC().Subject(subject).Body(body)
-		Sleep 1000
-		ol.SendEmail()
-		this.logger.Append(this.getFuncName(A_ThisFunc), "Email notification sent!")
-	}
-
-	; Opens the PDFs in an audit folder given MID.
-	OpenAuditFolder(win, caps, edge, sf, ps, wpmid?)
-	{
-		mid := ""
-		if IsSet(wpmid)
-			mid := wpmid
-		else
-		{
-			mid := this.data.cb.Update()
-			mid := DataHandler.Sanitize(mid)
-			if Clippy.IsEmpty(mid)
-				return this
-		}
-		
-		folderName := this.tryGetDBA(win, caps, this.data, mid)
-		
-		Run(ps.ShowAuditFolder("matchThenOpenPDF.ps1", folderName))
-
-		return this
 	}
 
 	; Opens a folder from shared drive using MID. 
@@ -385,25 +190,6 @@ class Routines
 		return this
 	}
 
-	; Moves already open Audit Fee PDFs to corresponding spaces on the screen.
-	ViewAuditPDFs(win, aa)
-	{
-		WinWaitActive aa.Ref
-		Sleep 2000
-		win.FocusWindow(aa)
-		wx := 0
-		WinGetPos(&wx,,,,WinGetTitle("A"))
-		if WinWaitActive("ahk_class AcrobatSDIWindow",,5)
-		{
-			if wx > 1920
-			win.MoveToLeftScreen(aa)
-			else
-				win.MoveToRightScreen(aa)
-			aa.GoToFinalPage()
-		}
-		return this
-	}
-
 	ConvertMIDToCaseID()
 	{
 		this.logger.Append(this.ConvertMIDToCaseID.Name, "Started!")
@@ -413,10 +199,7 @@ class Routines
 
 		for m in merchants 
 		{
-			try
-			{
-				ci := DataHandler.Retrieve(DataHandler.Sanitize(m.wpmid)).CaseID
-			}
+			try ci := DataHandler.Retrieve(DataHandler.Sanitize(m.wpmid)).CaseID
 			catch
 			{
 				this.logger.Append(this.ConvertMIDToCaseID.Name, "ERROR: Unable to retrieve merchant caseID => " . m.wpmid . " does not exist in DataStore")
@@ -439,10 +222,7 @@ class Routines
 			mid := DataHandler.Sanitize(mid)
 		}
 
-		try
-		{
-			dba := DataHandler.Retrieve(mid).AccountName
-		}
+		try dba := DataHandler.Retrieve(mid).AccountName
 		catch
 		{
 			; if it doesn't exist in DS, go to CAPS to get it
@@ -465,9 +245,11 @@ class RoutineObject
 {
 	active := False
 	paused := False
+	
 	uptime := Timer()
 	process := Timer()
 	statBar := StatusBar()
+	
 	className := ""
 	apps := {}
 
@@ -481,7 +263,10 @@ class RoutineObject
 	{
 		this.className := className
 		this.apps := apps
+		
 		; Add initializations here...
+
+		return this
 	}
 
 	IsActive() => this.active
@@ -491,7 +276,10 @@ class RoutineObject
 	Do()
 	{
 		this.Begin()
+		
 		; ...
+
+		this.Stop()
 	}
 
 	Begin()
@@ -574,16 +362,143 @@ class RoutineObject
 
 ; ROUTINE OBJECTS ;
 
+class OpenAuditFolder extends RoutineObject
+{
+	Do()
+	{
+		mid := DataHandler.Sanitize(A_Clipboard)
+		if Clippy.IsEmpty(mid)
+			return
+		
+		folderName := this.tryGetDBA(win, caps, this.data, mid)
+		
+		Run(ps.ShowAuditFolder("matchThenOpenPDF.ps1", folderName))
+	}
+}
+
+class ViewAuditPDFs extends RoutineObject
+{
+	Do()
+	{
+		aa := this.apps.aa
+		win := Windows() ; New windows object because its app specific.
+
+		WinWaitActive aa.Ref
+		Sleep 2000
+		Windows.FocusWindow(aa)
+		wx := 0
+		WinGetPos(&wx,,,,WinGetTitle("A"))
+		if WinWaitActive("ahk_class AcrobatSDIWindow",,5)
+		{
+			if wx > 1920
+				win.MoveToLeftScreen(aa)
+			else
+				win.MoveToRightScreen(aa)
+			aa.GoToFinalPage()
+		}
+	}
+}
+
+class PrepareClosureFormEmail extends RoutineObject
+{
+	Do()
+	{
+		caps := this.apps.caps
+		ol := this.apps.ol
+
+		wpmid := A_Clipboard
+		
+		if Clippy.IsEmpty(wpmid)
+			return this
+
+		dba := ""
+		mdPath := ""
+		email := "Not Found"
+
+		; Regex pattern for emails, kindly given by ChatGPT
+		emailPattern := "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"
+
+		try dba := DataHandler.Retrieve(wpmid).AccountName
+		catch ; if it doesn't exist in DS, go to CAPS to get it
+		{
+			Windows.FocusWindow(caps)
+			DataHandler.CopyFields(caps.DBA)
+			dba := caps.DBA.val
+		}
+		
+		; get name of .md file
+		mdPath := FileHandler.RetrievePath("..\merchants", dba, "md")
+
+		; get email from .md file
+		email := FileHandler.MatchPatternInFile(mdPath, emailPattern)
+
+		Windows.FocusWindow(ol)
+		
+		Sleep 100
+		
+		ol.AccessMenuItem("y")
+		ol.SendClosureMacro()
+		
+		Sleep 100
+		
+		; email[] because the brackets return the sub pattern
+		; https://www.autohotkey.com/docs/v2/lib/RegExMatch.htm#MatchObject
+		ol.To(email[]).CC().Subject("Close Account Request Form - " . dba . " (" . wpmid . ")").Body()
+	}
+}
+
+class PrepareConversionEmail extends RoutineObject
+{
+	Do()
+	{
+		caps := this.apps.caps
+		ol := this.apps.ol
+
+		wpmid := A_Clipboard
+
+		if Clippy.IsEmpty(wpmid)
+			return this
+
+		dba := ""
+		mdPath := ""
+		order := ""
+
+		try dba := DataHandler.Retrieve(wpmid).AccountName
+		catch
+		{
+			; if it doesn't exist in DS, go to CAPS to get it
+			win.FocusWindow(caps)
+			Sleep 300
+			DataHandler.CopyFields(caps.DBA)
+			dba := caps.DBA.val
+		}
+		
+		; Find the correct md file to read
+		mdPath := FileHandler.RetrievePath(FileHandler.Config("Paths", "MerchantMDs"), dba, "md")
+		
+		if mdPath = "none"
+			MsgBox "Unable to retrieve .md path"
+		else
+			order := this.fileOps.ReadOrder(mdPath)
+
+		Windows.FocusWindow(ol)
+		Sleep 100
+		ol.AccessMenuItem("y").SendOrderMacro()
+
+		WinWaitActive "Ready For Conversion -  - Message (Rich Text) "
+
+		ol.GoToSubjectLineFromBody()
+		Send "{End}"
+		Send dba . " (" . wpmid . ")"
+		ol.GoToMiddleOfBodyFromSubjectLine()
+		
+		Send order
+	}
+}
+
+; GenerateOrder creates a Markdown file and fills it with corresponding merchant data for an order.
 class GenerateOrder extends RoutineObject
 {
-	Init(className, apps)
-	{
-		this.className := className
-		this.apps := apps
-
-		return this
-	}
-
 	Do()
 	{
 		ob := this.apps.ob
@@ -683,21 +598,12 @@ class GenerateOrder extends RoutineObject
 		this.Stop()
 
 		Clippy.Shove(wp)
-		return this
 	}
 }
 
 ; DataStoreQuickLookup means DataStore Quick Look, letting the user lookup any MID in the DataStore and see its information.
 class DataStoreQuickLookup extends RoutineObject
 {
-	Init(className, apps)
-	{
-		this.className := className
-		this.apps := apps
-
-		return this
-	}
-
 	Do()
 	{
 		className := this.className
@@ -728,14 +634,6 @@ class DataStoreQuickLookup extends RoutineObject
 ; GetCAPSAccount pulls up CAPS and searches it for a single MID.
 class GetCAPSAccount extends RoutineObject
 {
-	Init(className, apps)
-	{
-		this.className := className
-		this.apps := apps
-
-		return this
-	}
-
 	Do()
 	{
 		className := this.className
@@ -755,21 +653,11 @@ class GetCAPSAccount extends RoutineObject
 		}
 
 		this.Stop()
-
-		return this
 	}
 }
 
 class GetSalesforcePage extends RoutineObject
 {
-	Init(className, apps)
-	{
-		this.className := className
-		this.apps := apps
-
-		return this
-	}
-
 	Do()
 	{
 		className := this.className
@@ -807,34 +695,20 @@ class GetSalesforcePage extends RoutineObject
 		Sleep 500
 
 		this.Stop()
-
-		return this
 	}
 }
 
 class UpdateSalesforceCaseFields extends RoutineObject
 {
-	Init(className, apps)
-	{
-		this.cub := apps.cub ; cub means Case Updater Bookmarklet.
-		this.edge := apps.edge
-		this.ol := apps.ol
-		
-		this.className := className
-		
-		return this
-	}
-
 	Do()
 	{
-
 		prompt := this.YesNoCancelBox("Would you like to send a notification email when routine is complete?", this.className)
 
 		this.Begin()
 
-		cub := this.cub
-		edge := this.edge
-		ol := this.ol
+		cub := this.apps.cub ; cub means Case Updater Bookmarklet.
+		edge := this.apps.edge
+		ol := this.apps.ol
 
 		rlf := Logger(FileHandler.Config("Paths", "RoutineLogs"), this.className)
 		
@@ -940,9 +814,6 @@ class UpdateSalesforceFields extends RoutineObject
 	scheme := Array()
 	Init(className, apps, scheme?)
 	{
-		this.fub := apps.fub ; fub means Field Updater Bookmarklet. Its a class that updates bookmark fields, extended from SalesforceDB.
-		this.edge := apps.edge
-		this.ol := apps.ol
 		if IsSet(scheme)
 			this.scheme := this.schemeFromObject(scheme)
 
@@ -977,9 +848,9 @@ class UpdateSalesforceFields extends RoutineObject
 		if prompt = "Cancel"
 			return
 		
-		fub := this.fub
-		edge := this.edge
-		ol := this.ol
+		fub := this.apps.fub ; fub means Field Updater Bookmarklet. Its a class that updates bookmark fields, extended from SalesforceDB.
+		edge := this.apps.edge
+		ol := this.apps.ol
 
 		str := ""
 		idx := 0
@@ -993,7 +864,7 @@ class UpdateSalesforceFields extends RoutineObject
 		csv := FileHandler(memoryInputFilePath, memoryOutputFilePath, this.className, "RoutineScheme")
 		
 		rlf := Logger(FileHandler.Config("Paths", "RoutineLogs"), this.className) ; RLF = Routine Log File.
-		rlf.append(, "ACCOUNTS THAT DON'T HAVE SALESFORCE FDMID")
+		rlf.Append(, "ACCOUNTS THAT DON'T HAVE SALESFORCE FDMID")
 
 		merchants := FileHandler.CreateMerchantArray(FileHandler.Config(this.className, "RoutineData"), this.scheme*)
 		parseMap := DataHandler(memoryOutputFilePath) ; Create a DataStore from the routine's CSV "memory" file stored in resources directory.
@@ -1027,7 +898,7 @@ class UpdateSalesforceFields extends RoutineObject
 			
 			this.statBar.Show("Merchant: " . totalParsed . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Completed in Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString . "`r`n" . "Last Received Word: " . fieldsAlreadyUpdated . "`r`n" . "Pass: " . passIndex)
 
-			sfUpdated := parseMap.IsParsed(m.fdmid)
+			sfUpdated := parseMap.IsParsed(m.fdmid) ; Checks memory to see if it had already done this merchant on previous runs.
 
 			if sfUpdated
 			{
@@ -1084,9 +955,7 @@ class UpdateSalesforceFields extends RoutineObject
 				csv.StringToCSV(str)
 			}
 			else
-			{
 				rlf.Append(m.fdmid)
-			}
 
 			totalParsed += 1
 			if sessionBatchAmount != 0 ; when the batch amount is 0, that means keep parsing til the very end, no limit.

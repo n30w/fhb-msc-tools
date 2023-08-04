@@ -9,6 +9,7 @@ class DataHandler
 	; create the persistent store and keep it in memory
 	static BuildStore(path)
 	{
+		Logger.Append(, "Building system DataStore...")
 		col := Array()
 		Loop read, path
 		{
@@ -19,9 +20,7 @@ class DataHandler
 				k := A_LoopField
 				v := {}
 				if i = 1 ; first line of CSV is column names, so add columns names to col for future ref
-				{
 					col.Push(k)
-				}
 				else
 				{
 					Loop parse, line, "CSV"
@@ -36,6 +35,7 @@ class DataHandler
 				}
 			}
 		}
+		Logger.Append(, "DataStore built")
 	}
 	
 	; stores a key and value into global DataStore
