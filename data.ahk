@@ -605,6 +605,7 @@ class Merchant
 	conversionDate := "none"
 	fdCorpID := "none"
 	fdChainID := "none"
+	closureReason := "none"
 
 	; CreateJSParseString assembles a string that the fieldUpdater.js code consumes. "sep" is the symbol that separates values. "link" is the symbol that joins two arrays together.
 	CreateJSParseString(sep, link)
