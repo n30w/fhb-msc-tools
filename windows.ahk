@@ -16,39 +16,37 @@ class Windows
 	static FocusWindow(app)
 	{
 		if Windows.WinExists(app)
-		{
 			WinActivate
-		}
 		else if WinWaitActive(app.Ref, , 5)
-		{
 			WinActivate app.Ref
-		}
 		else
 		{
 			if YesNoBox(app.Name . " is not running. Would you like to start it?") = "Yes"
 				app.Start()
 			else
+			{
 				MsgBox "Unable to start " . app.Name . ". Exiting routine..."
 				return
+			}
 		}
 	}
 
-	static ProcessList := Array()
+	static Applications := Array()
 
-	static Init(processes*)
+	static Init(apps*)
 	{
 		; Add applications to the list of applications (processes) currently needed to run.
-		Windows.ProcessList := processes
+		Windows.Applications := apps
 
 		; Start applications if they aren't currently open.
 		Logger.Append(, "Initializing applications and their windows...")
 
-		for app in Windows.ProcessList
+		for app in apps
 		{
 			if not Windows.WinExists(app)
 				app.Start()
 		}
-		
+
 		Logger.Append(, "Applications and their windows ready to go")
 	}
 	
@@ -63,20 +61,18 @@ class Windows
 	FocusWindow(app)
 	{
 		if this.WinExists(app)
-		{
 			WinActivate
-		}
 		else if WinWaitActive(app.Ref, , 5)
-		{
 			WinActivate app.Ref
-		}
 		else
 		{
 			if YesNoBox(app.Name . " is not running. Would you like to start it?") = "Yes"
 				app.Start()
 			else
+			{
 				MsgBox "Unable to start " . app.Name . ". Exiting routine..."
 				return
+			}
 		}
 	}
 

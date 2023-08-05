@@ -183,7 +183,7 @@ class Routines
 		
 		psFile := A_WorkingDir . "\powershell\matchFolder.ps1"
 		
-		folderName := this.tryGetDBA(win, caps, this.data, mid)
+		folderName := this.tryGetDBA(caps, mid)
 
 		Run(ps.Match(psFile, this.sharedDrive, folderName))
 
@@ -211,24 +211,21 @@ class Routines
 		MsgBox "Convert MID to Case ID complete"
 	}
 
-	tryGetDBA(win, caps, data, wpmid?)
+	tryGetDBA(caps, wpmid?)
 	{
 		mid := ""
 		if IsSet(wpmid)
 			mid := wpmid
 		else
-		{
-			mid := this.data.cb.Update()
-			mid := DataHandler.Sanitize(mid)
-		}
+			mid := DataHandler.Sanitize(A_Clipboard)
 
 		try dba := DataHandler.Retrieve(mid).AccountName
 		catch
 		{
 			; if it doesn't exist in DS, go to CAPS to get it
-			win.FocusWindow(caps)
+			Windows.FocusWindow(caps)
 			caps.clickBinocularAndSearch(mid)
-			dba := data.CopyFields(caps.DBA)
+			dba := DataHandler.CopyFields(caps.DBA)
 			Sleep 200
 		}
 		return dba
@@ -1036,7 +1033,7 @@ class UpdateConversionDateAndReason extends RoutineObject
 		
 		csv := FileHandler(memoryInputFilePath, memoryOutputFilePath, this.className, "RoutineScheme")
 		
-		; dkf is the key used in the merchant map used to access the key's value. It will usually be something of identification, like the WPMID or FDMID.
+		; dkf (DataKeyField) is the key used in the merchant map used to access the key's value. It will usually be something of identification, like the WPMID or FDMID.
 		dkf := FileHandler.Config(this.className, "DataKeyField")
 
 		rlf := Logger(FileHandler.Config("Paths", "RoutineLogs"), this.className) ; RLF = Routine Log File.
