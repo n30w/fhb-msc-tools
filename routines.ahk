@@ -288,6 +288,7 @@ class RoutineObject
 		this.paused := False
 		this.uptime.StartTimer()
 		this.process.StartTimer()
+		Logger.Append(this.className, "Started")
 	}
 
 	Hold()
@@ -994,6 +995,173 @@ class UpdateSalesforceFields extends RoutineObject
 		msgLines := Array(
 			this.process.ElapsedTime(),
 			passIndex,
+			idx . " of " . realTotal - 1,
+			sessionBatchAmount,
+			tally["EQUAL"],
+			tally["CHANGED"],
+			tally["INACCESSIBLE"]
+		)
+
+		body := Format(temp, msgLines*)
+		
+		if prompt = "Yes"
+		{
+			this.PrepareAndSendNotificationEmail(ol, body)
+			Logger.Append(this.className, "Email notification sent!")
+		}
+
+		MsgBox body
+	}
+}
+
+class UpdateConversionDateAndReason extends RoutineObject
+{
+	Do()
+	{
+		prompt := this.YesNoCancelBox("Would you like to send a notification email when routine is complete?", this.className)
+		
+		if prompt = "Cancel"
+			return
+		
+		fub := this.apps.fub ; fub means Field Updater Bookmarklet. Its a class that updates bookmark fields, extended from SalesforceDB.
+		edge := this.apps.edge
+		ol := this.apps.ol
+
+		str := ""
+		idx := 0
+		realTotal := 0
+
+		memoryInputFilePath := FileHandler.Config(this.className, "MemoryInputFile")
+		memoryOutputFilePath := FileHandler.Config(this.className, "MemoryOutputFile") ; This is where the "memory" is written to.
+		
+		csv := FileHandler(memoryInputFilePath, memoryOutputFilePath, this.className, "RoutineScheme")
+		
+		; dkf is the key used in the merchant map used to access the key's value. It will usually be something of identification, like the WPMID or FDMID.
+		dkf := FileHandler.Config(this.className, "DataKeyField")
+
+		rlf := Logger(FileHandler.Config("Paths", "RoutineLogs"), this.className) ; RLF = Routine Log File.
+		rlf.Append(, "MIDS THAT DON'T HAVE SALESFORCE ACCOUNT")
+
+		; Create a merchant array full of the data we will be updating on Salesforce.
+		merchants := FileHandler.CreateMerchantArray(FileHandler.Config(this.className, "RoutineInputFile"))
+		
+		; Create a DataStore from the routine's CSV "memory" file stored in resources directory.
+		memory := DataHandler(memoryOutputFilePath)
+		
+		; Create a DataStore of accountIDs, since singleton system DataStore doesn't have all of them.
+		accountIDs := DataHandler(FileHandler.Config(this.className, "RoutineData"))
+
+		tally := Map("INACCESSIBLE", 0, "CHANGED", 0, "EQUAL", 0)
+
+		response := "START"
+		jsParseString := "START"
+		
+		totalParsed := 1
+		totalComplete := 0
+		
+		merchantLength := merchants.length
+
+		MsgBox merchantLength
+		
+		sessionBatchAmount := Integer(FileHandler.Config(this.className, "SessionBatchAmount"))
+		sessionBatchAmount := (sessionBatchAmount > 0 ? sessionBatchAmount - 1 : sessionBatchAmount)
+		
+		this.Begin()
+		
+		Windows.FocusWindow(edge)
+
+		if not edge.TabTitleContains("Salesforce")
+			edge.NewTab()
+		
+		while (totalParsed <= merchantLength) and (totalComplete <= sessionBatchAmount)
+		{
+			m := merchants[totalParsed]
+			
+			Clippy.Shove("")
+			
+			idx := memory.Retrieve(m.%dkf%).OrderIndex
+			realTotal := memory.DsLength//memory.Cols.length
+			
+			this.statBar.Show("Merchant: " . totalParsed . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Completed in Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString . "`r`n" . "Last Received Word: " . response . "`r`n")
+
+			; Checks memory to see if it had already done this merchant on previous runs. If it has, Salesforce has most likely been updated.
+			sfUpdated := memory.IsParsed(m.%dkf%)
+
+			if sfUpdated
+			{
+				totalParsed += 1
+				continue
+			}
+
+			urlExists := fub.HasURL(m, "WPMID", "AccountID", accountIDs)
+			
+			if urlExists
+			{
+				edge.FocusURLBar()
+				Sleep 250
+				edge.PasteURLAndGo(fub.FullURL)
+				
+				Clippy.Shove("none")
+
+				jsParseString := m.CreateJSParseString(",", "+")
+
+				this.statBar.Show("Merchant: " . totalParsed . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Completed in Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString . "`r`n" . "Last Received Word: " . response . "`r`n")
+				
+				Sleep 1000
+
+				; Updates the fields, if there is a need to do that. Returns a response.
+				response := fub.UpdateFields(jsParseString)
+
+				orderIndex := memory.Retrieve(m.%dkf%).OrderIndex
+				
+				tally[response] += 1
+
+				if (response = "CHANGED") or (response = "EQUAL")
+				{
+					Logger.Append(this.className, m.%dkf% . (response = "CHANGED" ? " updated" : " already up to date"))
+					memory.SetParsed(orderIndex)
+					
+					if response = "CHANGED"
+						Sleep 1500
+				}
+				else if response = "INACCESSIBLE"
+					Logger.Append(this.className, m.%dkf% . " something went wrong accessing the Javascript for this webpage")
+
+				Sleep 800
+
+				; Write changes to routine file. This is the routine's "memory".
+				csv.StringToCSV(memory.DataStoreToFileString(csv.Scheme))
+			}
+			else
+				rlf.Append(m.%dkf%)
+
+			totalParsed += 1
+			
+			; When the batch amount is 0, that means keep parsing til the very end, no limit.
+			if sessionBatchAmount != 0 
+				totalComplete += 1
+		}
+
+		this.Stop()
+
+		Logger.Timer(totalComplete . " merchant accounts updated on Salesforce", this.process)
+
+		this.statBar.Reset()
+
+		temp := "
+		(
+		TIME ELAPSED: {1}
+		TOTAL SIZE:   {2}
+		BATCH SIZE:   {3}
+
+		EQUAL:        {4}
+		CHANGED:      {5}
+		INACCESSIBLE: {6}
+
+		)"
+
+		msgLines := Array(
+			this.process.ElapsedTime(),
 			idx . " of " . realTotal - 1,
 			sessionBatchAmount,
 			tally["EQUAL"],

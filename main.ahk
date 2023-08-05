@@ -62,8 +62,14 @@ DataHandler.BuildStore("resources\data\data.csv")
 	})
 	updateCaseFields := UpdateSalesforceCaseFields().Init("SFUpdate2", 
 	apps := {
-		cub: cub := CaseUpdaterBookmarklet(), 
+		cub: cub := CaseUpdaterBookmarklet(),
 		edge: edge, 
+		ol: ol
+	})
+	updateConversion := UpdateConversionDateAndReason().Init("UpdateConversionDateAndReason",
+	apps := {
+		fub: fub := FieldUpdaterBookmarklet(),
+		edge: edge,
 		ol: ol
 	})
 	generateMerchantOrder := GenerateOrder().Init("GenerateOrder",
@@ -88,7 +94,8 @@ Logger.Append(, "Session started! Time to make money...")
 	
 	F5:: Windows.FocusWindow(ob)
 	
-	^+F6:: updateAccountFields.Do()
+	^+F6:: updateConversion.Do()
+	;^+F6:: updateAccountFields.Do()
 	;^+F6:: updateCaseFields.Do()
 	
 	; ^F7:: routine.PrepareClosureFormEmail(win, caps, ol)
