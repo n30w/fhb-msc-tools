@@ -439,6 +439,7 @@ class FileHandler
 	{
 		merchants := Array()
 		cols := Array()
+
 		schemeLength := scheme.length
 		
 		if schemeLength > 0
@@ -667,6 +668,25 @@ class AbstractDataStructure
 	__New()
 	{
 		this.arr := Array()
+	}
+
+	; Enum tutorial AHK v2: https://www.autohotkey.com/boards/viewtopic.php?t=88725
+	; as well as https://github.com/ahk-v2-kb/internals/tree/master/Enumerator
+	; and more specifically https://github.com/ahk-v2-kb/internals/blob/master/Enumerator/04_Enumerator_Collection.ahk
+	__Enum(vars)
+	{
+		i := 1
+		
+		enumerate(&elm)
+		{
+			if i > this.Length()
+				return False
+			elm = this.arr[i]
+			i++
+			return True
+		}
+
+		return enumerate
 	}
 
 	Length() => this.arr.length
