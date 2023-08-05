@@ -588,6 +588,11 @@ class FileHandler
 	}
 }
 
+class Scheme extends Array
+{
+
+}
+
 class Merchant
 {
 	; Scheme for columns (abc, xyz, ...).
@@ -607,6 +612,19 @@ class Merchant
 	fdCorpID := "none"
 	fdChainID := "none"
 	closureReason := "none"
+
+	class ConversionCase
+	{
+		scheme := Scheme()
+
+		caseStatus := ""
+		caseOrigin := ""
+		caseType := ""
+		caseReason := ""
+		caseDueDate := ""
+		caseOpportunity := ""
+		casePriority := ""
+	}
 
 	; CreateJSParseString assembles a string that the fieldUpdater.js code consumes. "sep" is the symbol that separates values. "link" is the symbol that joins two arrays together.
 	CreateJSParseString(sep, link)
@@ -681,7 +699,7 @@ class AbstractDataStructure
 		{
 			if i > this.Length()
 				return False
-			elm = this.arr[i]
+			elm := this.arr[i]
 			i++
 			return True
 		}
