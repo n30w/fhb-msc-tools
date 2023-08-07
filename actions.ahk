@@ -12,6 +12,7 @@
 #Include "apps\outlook.ahk"
 #Include "apps\adobeacrobat.ahk"
 #Include "apps\powershell.ahk"
+#Include "apps\debugviewer.ahk"
 
 ; StrJoin turns an array into a string with separators.
 StrJoin(arr, sep)
