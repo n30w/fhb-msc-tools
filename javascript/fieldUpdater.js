@@ -132,7 +132,6 @@ javascript: (function() {
         let fdCorpID = new sfElm("FD Corp ID", "FD_Corp_ID__c");
         let dda = new sfElm("DDA");
         let tin = new sfElm("TIN #", "TIN__c");
-
         let closureReason = new sfElm("Closure Reason", "none", elmType.DROPDOWN_MENU);
 
         let fieldRef = buildFieldRefMap(accountName, wpmid, fdmid, chain, superChain, tin, dda, openDate, closedDate, conversionDate, fdChainID, fdCorpID, closureReason);
@@ -201,7 +200,7 @@ javascript: (function() {
                                             await myTimeout(() => {
                                                 dropdown.click();
                                             }, 400);
-                                            const dropdownItem = await waitForElm("//lightning-base-combobox-item[@data-value='" + fr.newValue +"']");
+                                            const dropdownItem = await waitForElm("//lightning-base-combobox-item[@data-value='" + fr.newValue.replace("-", "–") +"']");
                                             await myTimeout(() => {
                                                 dropdownItem.click();
                                             });
