@@ -172,7 +172,7 @@ class DataHandler
 	cb := Clippy()
 
 	; DataStoreToFileString turns the DataStore back into a comma separated string.
-	DataStoreToFileString(scheme)
+	DataStoreToFileString(scheme, dkf := "WPMID")
 	{
 		fileString := scheme . "`r`n"
 		fileLen := this.DsLength/this.Cols.length ; divide by the amount of columns there are, since each column is assigned a value
@@ -188,33 +188,11 @@ class DataHandler
 					colIdx := A_Index
 					v := ""
 					if A_Index != this.Cols.length and colIdx != 1
-					{
 						v := this.Retrieve(String(orderIdx)).%this.Cols[colIdx]% . ","
-					}
 					else if A_Index = this.Cols.length
-					{
 						v := orderIdx . (lineNumber = fileLen ? "" : "`r`n" )
-					}
 					else
-					{
-						try
-						{
-							v := this.Retrieve(String(orderIdx)).wpmid . ","
-						}
-						catch
-						{
-							Logger.Append(, "Failed to create file string using wpmid")
-						}
-
-						try
-						{
-							v := this.Retrieve(String(orderIDX)).fdmid . ","
-						}
-						catch
-						{
-							logger.Append(, "Failed to create file string using fdmid")
-						}
-					}
+						v := this.Retrieve(String(orderIdx)).%this.Cols[1]% . ","
 					lineString .= v
 				}
 			}
