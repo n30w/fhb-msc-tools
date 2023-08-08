@@ -22,7 +22,7 @@ class Logger
 		}
 	}
 
-	static Append(app?, msg := "")
+	static generateLogString(app?, msg := "")
 	{
 		timestamp := Logger.GetEntryDateTime()
         logEntry := "[" . timestamp . "] "
@@ -30,7 +30,26 @@ class Logger
 		if IsSet(app)
 			logEntry .= "@" . StrUpper(( IsObject(app) ? app.Name : app )) . " => "
 		
-		FileAppend(logEntry . msg "`n", Logger.logFilePath)
+		return logEntry . msg
+	}
+
+	static Append(app?, msg := "")
+	{
+		Logger.OutputToLogFile(app?, msg)
+		Logger.DebugOutput(app?, msg)
+	}
+
+	static OutputToLogFile(app?, msg := "")
+	{
+		entry := Logger.generateLogString(app?, msg)
+		FileAppend(entry . "`n", Logger.logFilePath)
+	}
+
+	; appends info to a live log file using OutputDebug
+	static DebugOutput(app?, msg := "")
+	{
+		entry := Logger.generateLogString(app?, msg)
+		OutputDebug entry
 	}
 
 	static Timer(msg, t)

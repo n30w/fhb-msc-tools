@@ -25,7 +25,11 @@ DataHandler.BuildStore("resources\data\data.csv")
 	sf := SalesforceDB()
 	ob := ObsidianVault("Obsidian",, "obsidian.lnk", "ahk_exe Obsidian.exe")
 	ps := Powershell("Powershell",,,)
+	dv := DebugViewer("DebugViewer++",, "DebugView++.exe", "ahk_exe DebugView++.exe")
 }
+
+; Open applications if aren't already open.
+Windows.Init(dv, ob, caps, ol)
 
 ; Initialize shared drive.
 {
@@ -66,7 +70,13 @@ DataHandler.BuildStore("resources\data\data.csv")
 		edge: edge, 
 		ol: ol
 	})
-	updateConversion := UpdateConversionDateAndReason().Init("UpdateConversionDateAndReason",
+	; updateConversion := UpdateConversionDateAndReason().Init("UpdateConversionDateAndReason",
+	; apps := {
+	; 	fub: fub := FieldUpdaterBookmarklet(),
+	; 	edge: edge,
+	; 	ol: ol
+	; })
+	updateClosedDate := UpdateSalesforceAccountFields().Init("UpdateClosedDateAndReason",
 	apps := {
 		fub: fub := FieldUpdaterBookmarklet(),
 		edge: edge,
@@ -82,9 +92,6 @@ DataHandler.BuildStore("resources\data\data.csv")
 
 Routines.Load(updateAccountFields, getCAPSPage, getSFConversionCase, updateCaseFields, dsQuickLookup, generateMerchantOrder)
 
-; Open applications if aren't already open.
-Windows.Init(ob, caps, ol)
-
 Logger.Append(, "Session started! Time to make money...")
 
 ; Hotkeys
@@ -94,7 +101,7 @@ Logger.Append(, "Session started! Time to make money...")
 	
 	F5:: Windows.FocusWindow(ob)
 	
-	^+F6:: updateConversion.Do()
+	^+F6:: UpdateClosedDate.Do()
 	;^+F6:: updateAccountFields.Do()
 	;^+F6:: updateCaseFields.Do()
 	
@@ -133,6 +140,6 @@ OnExit LogStopReason
 
 LogStopReason(ExitReason, ExitCode)
 {
-	Routines.Cease()
 	Logger.Append(, "===== Stopping due to " . ExitReason . " =====")
+	Routines.Cease()
 }

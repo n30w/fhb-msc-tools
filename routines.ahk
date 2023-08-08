@@ -360,19 +360,19 @@ class RoutineObject
 
 ; ROUTINE OBJECTS ;
 
-class OpenAuditFolder extends RoutineObject
-{
-	Do()
-	{
-		mid := DataHandler.Sanitize(A_Clipboard)
-		if Clippy.IsEmpty(mid)
-			return
+; class OpenAuditFolder extends RoutineObject
+; {
+; 	Do()
+; 	{
+; 		mid := DataHandler.Sanitize(A_Clipboard)
+; 		if Clippy.IsEmpty(mid)
+; 			return
 		
-		folderName := this.tryGetDBA(win, caps, this.data, mid)
+; 		folderName := this.tryGetDBA(win, caps, this.data, mid)
 		
-		Run(ps.ShowAuditFolder("matchThenOpenPDF.ps1", folderName))
-	}
-}
+; 		Run(ps.ShowAuditFolder("matchThenOpenPDF.ps1", folderName))
+; 	}
+; }
 
 class ViewAuditPDFs extends RoutineObject
 {
@@ -465,7 +465,7 @@ class PrepareConversionEmail extends RoutineObject
 		catch
 		{
 			; if it doesn't exist in DS, go to CAPS to get it
-			win.FocusWindow(caps)
+			Windows.FocusWindow(caps)
 			Sleep 300
 			DataHandler.CopyFields(caps.DBA)
 			dba := caps.DBA.val
@@ -1011,7 +1011,7 @@ class UpdateSalesforceFields extends RoutineObject
 	}
 }
 
-class UpdateConversionDateAndReason extends RoutineObject
+class UpdateSalesforceAccountFields extends RoutineObject
 {
 	Do()
 	{
@@ -1057,8 +1057,6 @@ class UpdateConversionDateAndReason extends RoutineObject
 		totalComplete := 0
 		
 		merchantLength := merchants.length
-
-		MsgBox merchantLength
 		
 		sessionBatchAmount := Integer(FileHandler.Config(this.className, "SessionBatchAmount"))
 		sessionBatchAmount := (sessionBatchAmount > 0 ? sessionBatchAmount - 1 : sessionBatchAmount)
@@ -1078,8 +1076,6 @@ class UpdateConversionDateAndReason extends RoutineObject
 			
 			idx := memory.Retrieve(m.%dkf%).OrderIndex
 			realTotal := memory.DsLength//memory.Cols.length
-			
-			this.statBar.Show("Merchant: " . totalParsed . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Completed in Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString . "`r`n" . "Last Received Word: " . response . "`r`n")
 
 			; Checks memory to see if it had already done this merchant on previous runs. If it has, Salesforce has most likely been updated.
 			sfUpdated := memory.IsParsed(m.%dkf%)
@@ -1090,7 +1086,9 @@ class UpdateConversionDateAndReason extends RoutineObject
 				continue
 			}
 
-			urlExists := fub.HasURL(m, "WPMID", "AccountID", accountIDs)
+			Logger.DebugOutput(this.className, "Merchant: " . totalParsed . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . (sessionBatchAmount > 0 ? "Completed in Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" : "") . "Payload: " . jsParseString . "`r`n" . "Previous Response: " . response . "`r`n")
+
+			urlExists := fub.HasURL(m, dkf, "AccountID", accountIDs)
 			
 			if urlExists
 			{
@@ -1102,7 +1100,7 @@ class UpdateConversionDateAndReason extends RoutineObject
 
 				jsParseString := m.CreateJSParseString(",", "+")
 
-				this.statBar.Show("Merchant: " . totalParsed . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Completed in Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString . "`r`n" . "Last Received Word: " . response . "`r`n")
+				Logger.DebugOutput(this.className,  "Payload: " . jsParseString . "`r`n")
 				
 				Sleep 1000
 
@@ -1122,15 +1120,18 @@ class UpdateConversionDateAndReason extends RoutineObject
 						Sleep 1500
 				}
 				else if response = "INACCESSIBLE"
-					Logger.Append(this.className, m.%dkf% . " something went wrong accessing the Javascript for this webpage")
+					Logger.Append(this.className, m.%dkf% . " something went wrong accessing the JavaScript for this webpage")
 
 				Sleep 800
 
 				; Write changes to routine file. This is the routine's "memory".
-				csv.StringToCSV(memory.DataStoreToFileString(csv.Scheme))
+				csv.StringToCSV(memory.DataStoreToFileString(csv.Scheme, dkf))
 			}
 			else
+			{
 				rlf.Append(m.%dkf%)
+				Logger.DebugOutput(this.className, m.%dkf% . "does not exist on Salesforce")
+			}
 
 			totalParsed += 1
 			
@@ -1142,8 +1143,6 @@ class UpdateConversionDateAndReason extends RoutineObject
 		this.Stop()
 
 		Logger.Timer(totalComplete . " merchant accounts updated on Salesforce", this.process)
-
-		this.statBar.Reset()
 
 		temp := "
 		(
