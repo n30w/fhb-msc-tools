@@ -5,6 +5,29 @@ class SalesforceDB extends Application
 {
 	FullURL := ""
 
+	; SalesforceDateFormat receives a date in the form of a string, then turns it into a date that is accepted by Salesforce fields.
+	static SalesforceDateFormat(s)
+	{
+		if s = "none"
+			return s
+		
+		newFormat := ""
+
+		if SubStr(s, 1, 1) = 0 ; 0 in months place
+			newFormat .= SubStr(s, 2, 2)
+		else
+			newFormat .= SubStr(s, 1, 3)
+
+		if SubStr(s, 4, 1) = 0 ; 0 in days place
+			newFormat .= SubStr(s, 5, 2)
+		else
+			newFormat .= SubStr(s, 4, 3)
+		
+		newFormat .= SubStr(s, -4)
+
+		return newFormat
+	}
+
 	; On Microsoft Edge, the bookmark bar can be accessed using the keyboard with the "alt" key. This focuses the bookmark bar and selects the first item on it.
 	altShiftB()
 	{

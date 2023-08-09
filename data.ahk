@@ -89,6 +89,20 @@ class DataHandler
 	DsLength := 0
 
 	Cols := Array()
+
+	; Creates a string that can be appended to the top of CSV file based on the Cols.
+	ColsToScheme()
+	{
+		str := ""
+		for c in this.Cols
+		{
+			if A_Index != this.Cols.length
+				str .= c . ","
+			else
+				str .= c
+		}
+		return str . "`r`n"
+	}
 	
 	; BuildStore creates a store to keep in memory
 	BuildStore(path)
@@ -102,9 +116,7 @@ class DataHandler
 				k := A_LoopField
 				v := {}
 				if i = 1 ; first line of CSV is column names, so add columns names to col for future ref
-				{
 					this.Cols.Push(k)
-				}
 				else
 				{
 					Loop parse, line, "CSV"
@@ -120,6 +132,7 @@ class DataHandler
 				this.DsLength += 1
 			}
 		}
+		
 	}
 	
 	; Store stores a key and value into LocalDataStore
@@ -138,14 +151,9 @@ class DataHandler
 	IsParsed(k)
 	{
 		p := false
-		try 
-		{
-			p := this.Retrieve(k).Parsed
-		}
+		try p := this.Retrieve(k).Parsed
 		catch
-		{
 			p := "FALSE"
-		}
 		if p = "TRUE"
 			return true
 		return false
@@ -172,7 +180,7 @@ class DataHandler
 	cb := Clippy()
 
 	; DataStoreToFileString turns the DataStore back into a comma separated string.
-	DataStoreToFileString(scheme, dkf := "WPMID")
+	DataStoreToFileString(scheme := this.ColsToScheme(), dkf := "WPMID")
 	{
 		fileString := scheme . "`r`n"
 		fileLen := this.DsLength/this.Cols.length ; divide by the amount of columns there are, since each column is assigned a value
@@ -410,7 +418,7 @@ class FileHandler
 	}
 
 	; Creates a new file title/path with a timestamp.
-	static NewTimestampedFile(title, path?, ext?) => Format("{1}{2}-{3}.{4}", ( IsSet(path) ? path : FileHandler.Config("Paths", "OutputPath") ), title, Logger.GetFileDateTime(), ( IsSet(ext) ? ext : "txt") )
+	static NewTimestampedFile(title, path?, ext?) => Format("{1}{2}_{3}.{4}", ( IsSet(path) ? path : FileHandler.Config("Paths", "OutputPath") ), title, Logger.GetFileDateTime(), ( IsSet(ext) ? ext : "txt") )
 
 	; Creates an array of merchant objects from a CSV or TSV file. If the user wants to use a text file, provide a scheme.
 	static CreateMerchantArray(file, scheme*)
@@ -526,6 +534,7 @@ class FileHandler
 	
 	Config(s, k) => IniRead("config.ini", s, k)
 
+	; Consumes a string and transfers it into a CSV.
 	StringToCSV(str)
 	{
 		newFileName := this.tmpPath . this.callerName . ".csv"
@@ -618,42 +627,11 @@ class Merchant
 			if v != "none" ; Omits "none" headers from string.
 			{
 				headers.Push(f)
-				values.Push((SubStr(f, -4) = "Date" ? this.SalesforceDateFormat(v) : v))
+				values.Push((SubStr(f, -4) = "Date" ? SalesforceDB.SalesforceDateFormat(v) : v))
 			}
 		}
 
 		return StrJoin(values, sep) . link . StrJoin(headers, sep)
-	}
-
-	; SalesforceDateFormat receives a date in the form of a string, then turns it into a date that is accepted by Salesforce fields.
-	SalesforceDateFormat(s)
-	{
-		if s = "none"
-			return s
-		
-		newFormat := ""
-
-		if SubStr(s, 1, 1) = 0 ; 0 in months place
-		{
-			newFormat .= SubStr(s, 2, 2)
-		}
-		else
-		{
-			newFormat .= SubStr(s, 1, 3)
-		}
-
-		if SubStr(s, 4, 1) = 0 ; 0 in days place
-		{
-			newFormat .= SubStr(s, 5, 2)
-		}
-		else
-		{
-			newFormat .= SubStr(s, 4, 3)
-		}
-		
-		newFormat .= SubStr(s, -4)
-
-		return newFormat
 	}
 }
 
