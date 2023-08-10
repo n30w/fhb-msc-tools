@@ -6,9 +6,8 @@ class MSEdge extends Application
 	{
 		Sleep 50
 		Send "{Ctrl down}l"
-		Sleep 200
+		Sleep 150
 		Send "{Ctrl up}"
-		Sleep 200
 	}
 
 	NewTab()
@@ -18,9 +17,8 @@ class MSEdge extends Application
 		Sleep 50
 	}
 
-	PasteURLAndGo(url)
+	PasteURLAndGo()
 	{
-		Clippy.Shove(url)
 		Send "^v"
 		Sleep 200
 		Send "{Enter down}"
