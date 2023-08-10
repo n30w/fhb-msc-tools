@@ -1109,29 +1109,31 @@ class UpdateSalesforceAccountFields extends RoutineObject
 			
 			if urlExists
 			{
+				Clippy.emptyA_Clipboard()
+				Clippy.Shove(fub.FullURL)
+				Logger.Append(this.className, "Going to URL: " fub.FullURL)
 				edge.FocusURLBar()
-				Sleep 250
-				edge.PasteURLAndGo(fub.FullURL)
-				
-				Clippy.Shove("none")
+				Sleep 150
+				edge.PasteURLAndGo()
 
 				jsParseString := m.CreateJSParseString(",", "+")
 
 				Logger.DebugOutput(this.className,  "Payload: " . jsParseString . "`r`n")
 				
-				Sleep 1000
+				Sleep 500
 
 				; Updates the fields, if there is a need to do that. Returns a response.
+				edge.FocusURLBar()
 				response := fub.UpdateFields(jsParseString)
 
-				orderIndex := memory.Retrieve(m.%dkf%).OrderIndex
+				Sleep 1000
 				
 				tally[response] += 1
 
 				if (response = "CHANGED") or (response = "EQUAL")
 				{
 					Logger.Append(this.className, m.%dkf% . (response = "CHANGED" ? " updated" : " already up to date"))
-					memory.SetParsed(orderIndex)
+					memory.SetParsed(memory.Retrieve(m.%dkf%).OrderIndex)
 					
 					if response = "CHANGED"
 						Sleep 1500
@@ -1224,6 +1226,7 @@ class SalesforceValidator extends RoutineObject
 		invalidOutput.Cols := [dkf, "Parsed", "OrderIndex"]
 		
 		orderIdx := 1
+		discrepancies := 0
 		cols := routineInputFile.Cols
 
 		for merchant in memoryFile
@@ -1249,6 +1252,7 @@ class SalesforceValidator extends RoutineObject
 					{
 						invalidOutput.Store(orderIdx, { Parsed: "FALSE", %dkf%: k })
 						orderIdx++
+						discrepancies++
 						break
 					}
 					
@@ -1263,7 +1267,7 @@ class SalesforceValidator extends RoutineObject
 		}
 
 		; Create the output file.
-		;MsgBox invalidOutput.DataStoreToFileString2(, dkf)
+		Logger.Append(this.className, discrepancies . " discrepancies found")
 		FileAppend invalidOutput.DataStoreToFileString2(, dkf), FileHandler.NewTimestampedFile("SalesforceValidator",, "csv")
 
 		MsgBox("Validated. Check Output Directory.")

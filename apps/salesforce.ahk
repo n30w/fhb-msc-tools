@@ -292,19 +292,61 @@ class CaseUpdaterBookmarklet extends SalesforceDB
 	}
 }
 
+; class FieldUpdaterBookmarklet extends SalesforceDB
+; {
+; 	UpdateFields(jsParseString)
+; 	{
+; 		Clippy.Shove(jsParseString)
+		
+; 		this.altShiftB()
+; 		Sleep 300
+; 		Send "{Right 1}"
+; 		Sleep 100
+; 		Send "{Enter down}"
+; 		Sleep 160
+; 		Send "{Enter up}"
+; 		Sleep 400
+
+; 		t := 0
+; 	 	i := 50
+; 		tMax := 12000
+
+; 	 	; wait for page to load and check clipboard, or else it times out
+; 	 	while (A_Clipboard = jsParseString) and (t <= tMax)
+; 	 	{
+; 	 		; wait
+; 	 		Sleep i
+; 	 		t += i
+; 	 	}
+
+; 		if t >= tMax
+; 	 		return "INACCESSIBLE" ; If this is returned, something went wrong doing the bookmarklet.
+
+; 		Sleep 200
+
+; 		if A_Clipboard = "equal"
+; 		{
+; 			return "EQUAL"
+; 		}
+
+; 		if A_Clipboard = "changed"
+; 		{
+; 			return "CHANGED"
+; 		}
+; 	}
+; }
+
 class FieldUpdaterBookmarklet extends SalesforceDB
 {
 	UpdateFields(jsParseString)
 	{
 		Clippy.Shove(jsParseString)
 		
-		this.altShiftB()
+		; Access custom "search engine" on chromium browser.
+		; https://rawbytz.wordpress.com/2015/11/21/launch-bookmarklets-with-the-keyboard-in-chrome/
+		Send "uf"
 		Sleep 300
-		Send "{Right 1}"
-		Sleep 100
-		Send "{Enter down}"
-		Sleep 160
-		Send "{Enter up}"
+		Send "{Enter}"
 		Sleep 400
 
 		t := 0
