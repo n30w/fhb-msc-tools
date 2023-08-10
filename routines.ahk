@@ -1084,7 +1084,14 @@ class UpdateSalesforceAccountFields extends RoutineObject
 			
 			Clippy.Shove("")
 			
-			idx := memory.Retrieve(m.%dkf%).OrderIndex
+			try idx := memory.Retrieve(m.%dkf%).OrderIndex
+			catch
+			{
+				totalParsed++
+				Logger.DebugOutput(this.className, m.%dkf% . " does not exist in memory file")
+				continue
+			}
+
 			realTotal := memory.DsLength//memory.Cols.length
 
 			; Checks memory to see if it had already done this merchant on previous runs. If it has, Salesforce has most likely been updated.
