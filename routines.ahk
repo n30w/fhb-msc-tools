@@ -1277,8 +1277,10 @@ class SalesforceValidator extends RoutineObject
 
 		; Create the output file.
 		Logger.Append(this.className, discrepancies . " discrepancies found")
-		FileAppend invalidOutput.DataStoreToFileString2(, dkf), FileHandler.NewTimestampedFile("SalesforceValidator",, "csv")
 
-		MsgBox("Validated. Check Output Directory.")
+		if !DirExist(this.outputPath)
+			DirCreate(this.outputPath)
+
+		FileAppend invalidOutput.DataStoreToFileString2(, dkf), FileHandler.NewTimestampedFile("SalesforceValidator", path . "\", "csv")
 	}
 }
