@@ -65,30 +65,6 @@ Windows.Init(dv, ob, caps, ol)
 		edge: edge, 
 		ol: ol
 	})
-	updateCaseFields := UpdateSalesforceCaseFields().Init("SFUpdate2", 
-	apps := {
-		cub: cub := CaseUpdaterBookmarklet(),
-		edge: edge, 
-		ol: ol
-	})
-	; updateConversion := UpdateConversionDateAndReason().Init("UpdateConversionDateAndReason",
-	; apps := {
-	; 	fub: fub := FieldUpdaterBookmarklet(),
-	; 	edge: edge,
-	; 	ol: ol
-	; })
-	updateClosedDate := UpdateSalesforceAccountFields().Init("UpdateClosedDateAndReason",
-	apps := {
-		fub: fub := FieldUpdaterBookmarklet(),
-		edge: edge,
-		ol: ol
-	})
-	UCDAR8823 := UpdateSalesforceAccountFields().Init("UCDAR8823",
-	apps := {
-		fub: fub := FieldUpdaterBookmarklet(),
-		edge: edge,
-		ol: ol
-	})
 	generateMerchantOrder := GenerateOrder().Init("GenerateOrder",
 	apps := {
 		ob: ob,
@@ -98,9 +74,9 @@ Windows.Init(dv, ob, caps, ol)
 	sv := SalesforceValidator().Init("ValidateSFData", apps := {})
 }
 
-Routines.Load(updateAccountFields, getCAPSPage, getSFConversionCase, updateCaseFields, dsQuickLookup, generateMerchantOrder)
+Routines.Load(updateAccountFields, getCAPSPage, getSFConversionCase, dsQuickLookup, generateMerchantOrder)
 
-Logger.Append(, "Session started! Time to make money...")
+Logger.Append(, "Session started!")
 
 ; Hotkeys
 {	
@@ -109,10 +85,7 @@ Logger.Append(, "Session started! Time to make money...")
 	
 	F5:: sv.Do()
 	^F5:: 
-	;^+F6:: UCDAR8823.Do()
-	^+F6:: UpdateClosedDate.Do()
-	;^+F6:: updateAccountFields.Do()
-	;^+F6:: updateCaseFields.Do()
+	^+F6:: updateAccountFields.Do()
 	
 	; ^F7:: routine.PrepareClosureFormEmail(win, caps, ol)
 	; ^+F7:: routine.PrepareConversionEmail(win, caps, ol)
