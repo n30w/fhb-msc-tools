@@ -258,6 +258,16 @@ class RoutineObject
 	className := ""
 	apps := {}
 
+	inputPath {
+		get => "io\input\" . this.className
+		set => this.inputPath := value
+	}
+
+	outputPath {
+		get => "io\output\" . this.className
+		set => this.outputPath := value
+	}
+
 	thisClassName()
 	{
 		str := StrSplit(A_ThisFunc, ".")
@@ -281,10 +291,13 @@ class RoutineObject
 	Do()
 	{
 		this.Begin()
-		
-		; ...
-
+		this.Procedure()
 		this.Stop()
+	}
+
+	Procedure()
+	{
+		; actual stuff that happens during the routine
 	}
 
 	Begin()
@@ -1023,7 +1036,7 @@ class UpdateSalesforceFields extends RoutineObject
 
 class UpdateSalesforceAccountFields extends RoutineObject
 {
-	Do()
+	Procedure()
 	{
 		prompt := this.YesNoCancelBox("Would you like to send a notification email when routine is complete?", this.className)
 		
