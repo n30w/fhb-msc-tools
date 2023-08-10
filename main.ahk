@@ -1,4 +1,5 @@
 #Requires AutoHotkey v2.0
+#SingleInstance force
 
 #Include "windows.ahk"
 #Include "workflows.ahk"
@@ -82,12 +83,19 @@ Windows.Init(dv, ob, caps, ol)
 		edge: edge,
 		ol: ol
 	})
+	UCDAR8823 := UpdateSalesforceAccountFields().Init("UCDAR8823",
+	apps := {
+		fub: fub := FieldUpdaterBookmarklet(),
+		edge: edge,
+		ol: ol
+	})
 	generateMerchantOrder := GenerateOrder().Init("GenerateOrder",
 	apps := {
 		ob: ob,
 		caps: caps,
 		gca: getCAPSPage
 	})
+	sv := SalesforceValidator().Init("ValidateSFData", apps := {})
 }
 
 Routines.Load(updateAccountFields, getCAPSPage, getSFConversionCase, updateCaseFields, dsQuickLookup, generateMerchantOrder)
@@ -99,8 +107,9 @@ Logger.Append(, "Session started! Time to make money...")
 	; F4:: routine.ViewAuditFolder(win, caps, edge, sf, ps)
 	; ^F4:: routine.GetSalesforceConversionCase(win, edge, sf).OpenAuditFolder(win, caps, edge, sf, ps).ViewAuditPDFs(win, aa)
 	
-	F5:: Windows.FocusWindow(ob)
-	
+	F5:: sv.Do()
+	^F5:: 
+	;^+F6:: UCDAR8823.Do()
 	^+F6:: UpdateClosedDate.Do()
 	;^+F6:: updateAccountFields.Do()
 	;^+F6:: updateCaseFields.Do()
@@ -124,11 +133,29 @@ Logger.Append(, "Session started! Time to make money...")
 	F11:: caps.Start()
 	
 	; Emergency brakes
-	F12::
+	F12:: ; Pauses a current running Routine.
+	{
+		Critical
+		msg := "Current running Routine halted!"
+		Logger.Append(, msg)
+		MsgBox(msg)
+	}
+
+	^F12::
+	{
+		Critical
+		msg := "Current running Routine exited!"
+		Logger.Append(, msg)
+		MsgBox(msg)
+		Return
+	}
+
+	^+F12::
 	{
 		Critical
 		ExitApp
 	}
+	
 	^!x::
 	{
 		Critical
