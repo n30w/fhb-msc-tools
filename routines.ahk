@@ -256,6 +256,8 @@ class RoutineObject
 	statBar := StatusBar()
 	
 	className := ""
+	stopMsg := ""
+
 	apps := {}
 
 	inputPath {
@@ -334,6 +336,7 @@ class RoutineObject
 	Stop()
 	{
 		this.Butcher()
+		Logger.Timer(this.stopMsg, this.process)
 	}
 
 	ElapsedTime() => this.process.ElapsedTime()
@@ -719,333 +722,65 @@ class GetSalesforcePage extends RoutineObject
 	}
 }
 
-class UpdateSalesforceCaseFields extends RoutineObject
+; UpdateSalesforceFields is a RoutineObject that allows the user to update fields on Salesforce when it is given a custom Salesforce object. It uses that object to execute the updates on Salesforce via the Salesforce "UpdateFields" method.
+class UpdateSalesforceFields extends RoutineObject
 {
+	tally := Map("INACCESSIBLE", 0, "CHANGED", 0, "EQUAL", 0)
+	sba := 0
+	rt := 0
+	i := 0
+
 	Do()
 	{
-		prompt := this.YesNoCancelBox("Would you like to send a notification email when routine is complete?", this.className)
-
-		this.Begin()
-
-		cub := this.apps.cub ; cub means Case Updater Bookmarklet.
-		edge := this.apps.edge
 		ol := this.apps.ol
-
-		rlf := Logger(FileHandler.Config("Paths", "RoutineLogs"), this.className)
 		
-		Logger.Append(this.className, "Started")
-
-		tally := Map("INACCESSIBLE", 0, "CHANGED", 0, "EQUAL", 0)
-		totalParsed := 1
-		merchants := FileHandler.CreateMerchantArray(FileHandler.Config("Functions", this.className))
-		merchantLength := merchants.length
+		this.Begin()
 		
-		Windows.FocusWindow(edge)
-
-		if not edge.TabTitleContains("Salesforce")
-			edge.NewTab()
-
-		while totalParsed < merchants.length
-		{
-			m := merchants[totalParsed]
-			urlExists := cub.HasCaseURL(m)
-			
-			Sleep 700
-			
-			if urlExists
-			{
-				edge.FocusURLBar()
-				Sleep 250
-				edge.PasteURLAndGo(cub.FullURL)
-
-				fieldsAlreadyUpdated := cub.UpdateFields("waiting")
-				
-				Sleep 1000
-
-				if (fieldsAlreadyUpdated = "CHANGED") or (fieldsAlreadyUpdated = "EQUAL")
-				{
-					Logger.Append(this.className, m.wpmid . (fieldsAlreadyUpdated = "CHANGED" ? " updated" : " already up to date"))
-					
-					if fieldsAlreadyUpdated = "CHANGED"
-					{
-						tally["CHANGED"] += 1
-						Sleep 700
-					}
-					else
-					{
-						tally["EQUAL"] += 1
-					}
-				}
-				else if fieldsAlreadyUpdated = "INACCESSIBLE"
-				{
-					Logger.Append(this.className, m.wpmid . " something went wrong accessing the Javascript for this webpage")
-					tally["INACCESSIBLE"] += 1
-					encounteredJSError := True
-				}
-
-				Sleep 1000
-			}
-			else
-			{
-				rlf.Append(, m.wpmid . " does not have an existing account on Salesforce")
-			}
-
-			totalParsed += 1
-
-		}
-
-		this.Stop()
-
-		Logger.Timer(totalParsed . " merchant accounts updated on Salesforce", this.process)
-
+		prompt := this.YesNoCancelBox("Would you like to send a notification email when routine is complete?", this.className)
+		
+		if prompt = "Cancel"
+			return
+		
+		this.Procedure()
+		
 		temp := "
 		(
 		TIME ELAPSED: {1}
 		TOTAL SIZE:   {2}
+		BATCH SIZE:   {3}
 
-		EQUAL:        {3}
-		CHANGED:      {4}
-		INACCESSIBLE: {5}
+		EQUAL:        {4}
+		CHANGED:      {5}
+		INACCESSIBLE: {6}
 
 		)"
 
 		msgLines := Array(
 			this.process.ElapsedTime(),
-			merchantLength,
-			tally["EQUAL"],
-			tally["CHANGED"],
-			tally["INACCESSIBLE"]
+			this.i . " of " . this.rt,
+			(this.sba = 0 ? "ALL" : this.sba),
+			this.tally["EQUAL"],
+			this.tally["CHANGED"],
+			this.tally["INACCESSIBLE"]
 		)
-
+		
 		body := Format(temp, msgLines*)
+		
+		Logger.Append(, "`n" body)
 		
 		if prompt = "Yes"
 		{
 			this.PrepareAndSendNotificationEmail(ol, body)
 			Logger.Append(this.className, "Email notification sent!")
 		}
-
-		MsgBox body
-	}
-}
-
-; UpdateSalesforceFields is a RoutineObject that allows the user to update fields on Salesforce when it is given a custom Salesforce object. It uses that object to execute the updates on Salesforce via the Salesforce "UpdateFields" method.
-class UpdateSalesforceFields extends RoutineObject
-{
-	scheme := Array()
-	Init(className, apps, scheme?)
-	{
-		if IsSet(scheme)
-			this.scheme := this.schemeFromObject(scheme)
-
-		this.className := className
-
-		return this
-	}
-
-	schemeFromObject(obj)
-	{
-		s := Array()
-		for attr in obj.OwnProps()
-		{
-			s.Push(attr)
-		}
-		return s
-	}
-
-	Do(passIndex := 1)
-	{
-		prompt := ""
-
-		if passIndex = 1
-			prompt := this.YesNoCancelBox("Would you like to send a notification email when routine is complete?", this.className)
 		
-		if passIndex > 10
-		{
-			Logger.Append(this.className, "Too many passes - " . passIndex . ". Something is consistently inaccessible => stopping...")
-			return
-		}
-		
-		if prompt = "Cancel"
-			return
-		
-		fub := this.apps.fub ; fub means Field Updater Bookmarklet. Its a class that updates bookmark fields, extended from SalesforceDB.
-		edge := this.apps.edge
-		ol := this.apps.ol
-
-		str := ""
-		idx := 0
-		realTotal := 0
-		fieldsAlreadyUpdated := False
-		encounteredJSError := False
-
-		memoryInputFilePath := FileHandler.Config(this.className, "MemoryInputFile")
-		memoryOutputFilePath := FileHandler.Config(this.className, "MemoryOutputFile") ; This is where the "memory" is written to.
-		
-		csv := FileHandler(memoryInputFilePath, memoryOutputFilePath, this.className, "RoutineScheme")
-		
-		rlf := Logger(FileHandler.Config("Paths", "RoutineLogs"), this.className) ; RLF = Routine Log File.
-		rlf.Append(, "ACCOUNTS THAT DON'T HAVE SALESFORCE FDMID")
-
-		merchants := FileHandler.CreateMerchantArray(FileHandler.Config(this.className, "RoutineData"), this.scheme*)
-		parseMap := DataHandler(memoryOutputFilePath) ; Create a DataStore from the routine's CSV "memory" file stored in resources directory.
-		tally := Map("INACCESSIBLE", 0, "CHANGED", 0, "EQUAL", 0)
-
-		this.Begin()
-		
-		Logger.Append(this.className, "Started")
-		
-		Windows.FocusWindow(edge)
-
-		if not edge.TabTitleContains("Salesforce")
-			edge.NewTab()
-		
-		fieldsAlreadyUpdated := "START"
-		jsParseString := "START"
-		totalParsed := 1
-		totalComplete := 0
-		merchantLength := merchants.length
-		sessionBatchAmount := Integer(FileHandler.Config(this.className, "SessionBatchAmount"))
-		sessionBatchAmount := (sessionBatchAmount > 0 ? sessionBatchAmount - 1 : sessionBatchAmount)
-
-		while (totalParsed <= merchantLength) and (totalComplete <= sessionBatchAmount)
-		{
-			m := merchants[totalParsed]
-			
-			Clippy.Shove("")
-			
-			idx := parseMap.Retrieve(m.fdmid).OrderIndex
-			realTotal := parseMap.DsLength//parsemap.Cols.length
-			
-			this.statBar.Show("Merchant: " . totalParsed . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Completed in Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString . "`r`n" . "Last Received Word: " . fieldsAlreadyUpdated . "`r`n" . "Pass: " . passIndex)
-
-			sfUpdated := parseMap.IsParsed(m.fdmid) ; Checks memory to see if it had already done this merchant on previous runs.
-
-			if sfUpdated
-			{
-				totalParsed += 1
-				continue
-			}
-
-			urlExists := fub.HasURL(m, "FDMID", "AccountID")
-			
-			if urlExists
-			{
-				edge.FocusURLBar()
-				Sleep 250
-				edge.PasteURLAndGo(fub.FullURL)
-				
-				Clippy.Shove("none")
-
-				jsParseString := m.CreateJSParseString(",", "+")
-
-				this.statBar.Show("Merchant: " . totalParsed . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . "Completed in Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" . "Payload: " . jsParseString . "`r`n" . "Last Received Word: " . fieldsAlreadyUpdated . "`r`n" . "Pass: " . passIndex)
-				
-				Sleep 1000
-
-				; Updates the fields, if there is a need to do that.
-				fieldsAlreadyUpdated := fub.UpdateFields(jsParseString)
-
-				orderIndex := parseMap.Retrieve(m.fdmid).OrderIndex
-				
-				if (fieldsAlreadyUpdated = "CHANGED") or (fieldsAlreadyUpdated = "EQUAL")
-				{
-					Logger.Append(this.className, m.fdmid . (fieldsAlreadyUpdated = "CHANGED" ? " updated" : " already up to date"))
-					parseMap.SetParsed(orderIndex)
-					if fieldsAlreadyUpdated = "CHANGED"
-					{
-						tally["CHANGED"] += 1
-						Sleep 1500
-					}
-					else
-					{
-						tally["EQUAL"] += 1
-					}
-				}
-				else if fieldsAlreadyUpdated = "INACCESSIBLE"
-				{
-					Logger.Append(this.className, m.fdmid . " something went wrong accessing the Javascript for this webpage")
-					tally["INACCESSIBLE"] += 1
-					encounteredJSError := True
-				}
-
-				Sleep 800
-
-				; Write changes to routine file. This is the routine's "memory".
-				str := parseMap.DataStoreToFileString(csv.Scheme)
-				csv.StringToCSV(str)
-			}
-			else
-				rlf.Append(m.fdmid)
-
-			totalParsed += 1
-			if sessionBatchAmount != 0 ; when the batch amount is 0, that means keep parsing til the very end, no limit.
-				totalComplete += 1
-
-		}
-
 		this.Stop()
-
-		Logger.Timer(totalComplete . " merchant accounts updated on Salesforce", this.process)
-
-		this.statBar.Reset()
-
-		if encounteredJSError
-		{
-			this.Do(passIndex + 1)
-		}
-		else if !encounteredJSError and passIndex > 1
-		{
-			return
-		}
-
-		temp := "
-		(
-		TIME ELAPSED: {1}
-		TOTAL PASSES: {2}
-		TOTAL SIZE:   {3}
-		BATCH SIZE:   {4}
-
-		EQUAL:        {5}
-		CHANGED:      {6}
-		INACCESSIBLE: {7}
-
-		)"
-
-		msgLines := Array(
-			this.process.ElapsedTime(),
-			passIndex,
-			idx . " of " . realTotal - 1,
-			sessionBatchAmount,
-			tally["EQUAL"],
-			tally["CHANGED"],
-			tally["INACCESSIBLE"]
-		)
-
-		body := Format(temp, msgLines*)
-		
-		if prompt = "Yes"
-		{
-			this.PrepareAndSendNotificationEmail(ol, body)
-			Logger.Append(this.className, "Email notification sent!")
-		}
-
-		MsgBox body
 	}
-}
 
-class UpdateSalesforceAccountFields extends RoutineObject
-{
 	Procedure()
 	{
-		prompt := this.YesNoCancelBox("Would you like to send a notification email when routine is complete?", this.className)
-		
-		if prompt = "Cancel"
-			return
-		
 		fub := this.apps.fub ; fub means Field Updater Bookmarklet. Its a class that updates bookmark fields, extended from SalesforceDB.
 		edge := this.apps.edge
-		ol := this.apps.ol
 
 		str := ""
 		idx := 0
@@ -1071,8 +806,6 @@ class UpdateSalesforceAccountFields extends RoutineObject
 		; Create a DataStore of accountIDs, since singleton system DataStore doesn't have all of them.
 		accountIDs := DataHandler(FileHandler.Config(this.className, "RoutineData"))
 
-		tally := Map("INACCESSIBLE", 0, "CHANGED", 0, "EQUAL", 0)
-
 		response := "START"
 		jsParseString := "START"
 		
@@ -1093,7 +826,7 @@ class UpdateSalesforceAccountFields extends RoutineObject
 		{
 			m := merchants[totalParsed]
 			
-			Clippy.Shove("")
+			Clippy.emptyA_Clipboard()
 			
 			try idx := memory.Retrieve(m.%dkf%).OrderIndex
 			catch
@@ -1139,7 +872,7 @@ class UpdateSalesforceAccountFields extends RoutineObject
 
 				Sleep 1000
 				
-				tally[response]++
+				this.tally[response]++
 
 				if (response = "CHANGED") or (response = "EQUAL")
 				{
@@ -1170,38 +903,10 @@ class UpdateSalesforceAccountFields extends RoutineObject
 				totalComplete++
 		}
 
-		Logger.Timer(totalParsed . " merchant accounts updated on Salesforce", this.process)
-
-		temp := "
-		(
-		TIME ELAPSED: {1}
-		TOTAL SIZE:   {2}
-		BATCH SIZE:   {3}
-
-		EQUAL:        {4}
-		CHANGED:      {5}
-		INACCESSIBLE: {6}
-
-		)"
-
-		msgLines := Array(
-			this.process.ElapsedTime(),
-			idx . " of " . realTotal - 1,
-			sessionBatchAmount,
-			tally["EQUAL"],
-			tally["CHANGED"],
-			tally["INACCESSIBLE"]
-		)
-
-		body := Format(temp, msgLines*)
-		
-		Logger.Append(, body)
-		
-		if prompt = "Yes"
-		{
-			this.PrepareAndSendNotificationEmail(ol, body)
-			Logger.Append(this.className, "Email notification sent!")
-		}
+		this.stopMsg := totalParsed . " merchant accounts parsed"
+		this.sba := sessionBatchAmount
+		this.rt := realTotal
+		this.i := idx
 	}
 }
 
@@ -1281,6 +986,6 @@ class SalesforceValidator extends RoutineObject
 		if !DirExist(this.outputPath)
 			DirCreate(this.outputPath)
 
-		FileAppend invalidOutput.DataStoreToFileString2(, dkf), FileHandler.NewTimestampedFile("SalesforceValidator", path . "\", "csv")
+		FileAppend invalidOutput.DataStoreToFileString2(, dkf), FileHandler.NewTimestampedFile("SalesforceValidator", this.outputPath . "\", "csv")
 	}
 }
