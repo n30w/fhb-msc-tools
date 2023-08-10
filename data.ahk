@@ -136,10 +136,8 @@ class DataHandler
 					}
 					this.Store(k, v)
 				}
-				this.DsLength += 1
 			}
 		}
-		
 	}
 	
 	; Store stores a key and value into LocalDataStore
@@ -198,7 +196,7 @@ class DataHandler
 	DataStoreToFileString(scheme := this.ColsToScheme(), dkf := "WPMID")
 	{
 		fileString := scheme . "`r`n"
-		fileLen := this.DsLength/this.Cols.length ; divide by the amount of columns there are, since each column is a key with a value.
+		fileLen := this.Length/this.Cols.length ; divide by the amount of columns there are, since each column is a key with a value.
 		loop (fileLen)
 		{
 			lineString := ""
@@ -209,14 +207,12 @@ class DataHandler
 				for col in this.Cols
 				{
 					colIdx := A_Index
-					v := ""
-					if A_Index != this.Cols.length and colIdx != 1
-						v := this.Retrieve(String(orderIdx)).%this.Cols[colIdx]% . ","
-					else if A_Index = this.Cols.length
-						v := orderIdx . (lineNumber = fileLen ? "" : "`r`n" )
+					if colIdx != this.Cols.length and colIdx != 1
+						lineString .= this.Retrieve(String(orderIdx)).%this.Cols[colIdx]% . ","
+					else if colIdx = this.Cols.length
+						lineString .= orderIdx . (lineNumber = fileLen ? "" : "`r`n" )
 					else
-						v := this.Retrieve(String(orderIdx)).%this.Cols[1]% . ","
-					lineString .= v
+						lineString .= this.Retrieve(String(orderIdx)).%this.Cols[1]% . ","
 				}
 			}
 			fileString .= lineString
@@ -232,14 +228,14 @@ class DataHandler
 		for k in this.LocalDataStore
 		{
 			i := A_Index
-			v := this.Retrieve(k)
-			lineString := k . ","
+			v := this.Retrieve(i)
+			lineString := v.%dkf% . ","
 			
 			for col in this.Cols
 			{
 				if col = dkf
 					continue
-				lineString .= (col = "OrderIndex" ? i . "`r`n" : v.%col% . "," )
+				lineString .= (col = "OrderIndex" ? k . "`r`n" : v.%col% . "," )
 			}
 
 			fileString .= lineString
@@ -658,7 +654,7 @@ class Merchant
 			if v != "none" ; Omits "none" headers from string.
 			{
 				headers.Push(f)
-				values.Push((SubStr(f, -4) = "Date" ? SalesforceDB.SalesforceDateFormat(v) : v))
+				values.Push((SubStr(f, -4) = "Date" ? SalesforceDB.RemoveDateZero(v) : v))
 			}
 		}
 

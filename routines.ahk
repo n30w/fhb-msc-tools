@@ -1240,9 +1240,15 @@ class SalesforceValidator extends RoutineObject
 
 					if v1 != v2
 					{
-						invalidOutput.Store(k, { Parsed: "FALSE", OrderIndex: orderIdx })
+						invalidOutput.Store(orderIdx, { Parsed: "FALSE", %dkf%: k })
 						orderIdx++
 						break
+					}
+					
+					if (v1 = v2) and (i = cols.length)
+					{
+						invalidOutput.Store(orderIdx, { Parsed: "TRUE", %dkf%: k })
+						orderIdx++
 					}
 				}
 				i++

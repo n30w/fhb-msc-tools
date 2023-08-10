@@ -28,6 +28,16 @@ class SalesforceDB extends Application
 		return newFormat
 	}
 
+	; alternative to SalesforceDateFormat. Removes any zeros in any date field.
+	static RemoveDateZero(str)
+	{
+		arr := StrSplit(str, "/")
+		try r := Integer(arr[1]) . "/" . Integer(arr[2]) . "/" Integer(arr[3])
+		catch
+			r := str
+		return r
+	}
+
 	; On Microsoft Edge, the bookmark bar can be accessed using the keyboard with the "alt" key. This focuses the bookmark bar and selects the first item on it.
 	altShiftB()
 	{
