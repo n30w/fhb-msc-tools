@@ -164,7 +164,7 @@ javascript: (function() {
                 let fr = fieldRef.get(val);
                 let elm1 = await waitForElm(recordLayoutItemField(fr.propFieldLabel));
                 fr.value = await myTimeoutVal(elm1.childNodes[0].value);
-                if (fieldValuesFromInputString[i] !== fr.value && fieldValuesFromInputString[i] !== "none") {
+                if (fieldValuesFromInputString[i] !== fr.value.replace("–", "-") && fieldValuesFromInputString[i] !== "none") {
                     allEqual = false;
                     fr.isEqual = false;
                     fr.newValue = fieldValuesFromInputString[i];
