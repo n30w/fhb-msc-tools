@@ -649,7 +649,7 @@ class Merchant
 
 		for f, v in this.OwnProps()
 		{
-			if f = "scheme"
+			if (f = "scheme") or (f = "wpmid") ; don't touch WPMID right now.
 				continue
 			if v != "none" ; Omits "none" headers from string.
 			{
