@@ -9,6 +9,14 @@ class Routines
 {
 	static RoutineList := Queue()
 
+	static CurrentRoutine := ""
+
+	static SetCurrentRoutine(ro)
+	{
+		Routines.CurrentRoutine := ro
+	}
+
+
 	; Load wanted routines into the Singleton RoutineList.
 	static Load(rs*)
 	{
@@ -286,6 +294,7 @@ class RoutineObject
 		this.uptime.StartTimer()
 		this.process.StartTimer()
 		Logger.Append(this.className, "Started")
+		Routines.SetCurrentRoutine(this)
 	}
 
 	Hold()
@@ -306,6 +315,7 @@ class RoutineObject
 		this.paused := False
 		this.process.StopTimer()
 		this.uptime.StopTimer()
+		Routines.SetCurrentRoutine("none")
 	}
 
 	Stop()
@@ -1130,7 +1140,7 @@ class UpdateSalesforceAccountFields extends RoutineObject
 			else
 			{
 				rlf.Append(m.%dkf%)
-				Logger.DebugOutput(this.className, m.%dkf% . "does not exist on Salesforce")
+				Logger.DebugOutput(this.className, m.%dkf% . " does not exist on Salesforce")
 			}
 
 			totalParsed += 1
@@ -1142,7 +1152,7 @@ class UpdateSalesforceAccountFields extends RoutineObject
 
 		this.Stop()
 
-		Logger.Timer(totalComplete . " merchant accounts updated on Salesforce", this.process)
+		Logger.Timer(totalParsed . " merchant accounts updated on Salesforce", this.process)
 
 		temp := "
 		(
@@ -1174,5 +1184,75 @@ class UpdateSalesforceAccountFields extends RoutineObject
 		}
 
 		MsgBox body
+	}
+}
+
+; Validates Salesforce data by reading the page and logging it.
+class SalesforceValidator extends RoutineObject
+{
+	removeDateZero(str)
+	{
+		arr := StrSplit(str, "/")
+		try r := Integer(arr[1]) . "/" . Integer(arr[2]) . "/" Integer(arr[3])
+		catch
+			r := str
+		return r
+	}
+
+	Do()
+	{
+		dkf := FileHandler.Config(this.className, "DataKeyField")
+		
+		; Data from SF, this is where we check if the parsed data matches up or not.
+		sfReportData := DataHandler(FileHandler.Config(this.className, "SFReportDataInput"))
+		
+		; The data in this should match up with the data on SF, since that's what we're comparing against.
+		routineInputFile := DataHandler(FileHandler.Config(this.className, "RoutineInputFile"))
+		
+		; This is the memory file, or the CSV with parsed data.
+		memoryFile := FileHandler.CreateMerchantArray(FileHandler.Config(this.className, "MemoryFile"))
+
+		; DataStore that will be turned into the CSV at the end. AKA all the invalid entries that don't match.
+		invalidOutput := DataHandler()
+		invalidOutput.Cols := [dkf, "Parsed", "OrderIndex"]
+		
+		orderIdx := 1
+		cols := routineInputFile.Cols
+
+		for merchant in memoryFile
+		{
+			i := 2 ; start at 2, because the ID of a merchant starts at 1
+			k := merchant.%dkf%
+
+			while i <= cols.length
+			{
+				exist := true
+				try v1 := sfReportData.Retrieve(k).%cols[i]%
+				catch
+					exist := false
+				
+				if exist
+				{
+					v2 := routineInputFile.Retrieve(k).%cols[i]%
+
+					v1 := DataHandler.Sanitize((SubStr(cols[i], -4) = "Date" ? this.removeDateZero(v1) : v1))
+					v2 := DataHandler.Sanitize((SubStr(cols[i], -4) = "Date" ? this.removeDateZero(v2) : v2))
+
+					if v1 != v2
+					{
+						invalidOutput.Store(k, { Parsed: "FALSE", OrderIndex: orderIdx })
+						orderIdx++
+						break
+					}
+				}
+				i++
+			}
+		}
+
+		; Create the output file.
+		;MsgBox invalidOutput.DataStoreToFileString2(, dkf)
+		FileAppend invalidOutput.DataStoreToFileString2(, dkf), FileHandler.NewTimestampedFile("SalesforceValidator",, "csv")
+
+		MsgBox("Validated. Check Output Directory.")
 	}
 }

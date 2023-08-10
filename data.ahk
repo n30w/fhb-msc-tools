@@ -90,6 +90,13 @@ class DataHandler
 
 	Cols := Array()
 
+	__Enum() => this.LocalDataStore
+
+	Length {
+		get => this.DsLength
+		set => this.DsLength := value
+	}
+
 	; Creates a string that can be appended to the top of CSV file based on the Cols.
 	ColsToScheme()
 	{
@@ -136,7 +143,11 @@ class DataHandler
 	}
 	
 	; Store stores a key and value into LocalDataStore
-	Store(k ,v) => this.LocalDataStore.Set(k ,v)
+	Store(k ,v)
+	{
+		this.LocalDataStore.Set(k, v)
+		this.Length++
+	} 
 	
 	; Retrieve returns a value given key from LocalDataStore
 	Retrieve(k) => this.LocalDataStore.Get(k)
@@ -145,7 +156,11 @@ class DataHandler
 	Update(k, v) => (this.LocalDataStore.Has(k) ? this.LocalDataStore[k] := v : "")
 	
 	; Erase deletes a k from LocalDataStore
-	Erase(k) => this.LocalDataStore.Delete(k)
+	Erase(k)
+	{
+		this.LocalDataStore.Delete(k)
+		this.Length--
+	}
 	
 	; IsParsed returns true or false if a value is already parsed or not. "Parsed" in this context refers to a row's column value given from a routine's TSV or CSV file located in the "resources/routines" folder. This folder serves as a type of memory on disk, so that if the program reloads, it can pick up where it left off, in other words, it knows whether it has already parsed a value or not.
 	IsParsed(k)
@@ -183,7 +198,7 @@ class DataHandler
 	DataStoreToFileString(scheme := this.ColsToScheme(), dkf := "WPMID")
 	{
 		fileString := scheme . "`r`n"
-		fileLen := this.DsLength/this.Cols.length ; divide by the amount of columns there are, since each column is assigned a value
+		fileLen := this.DsLength/this.Cols.length ; divide by the amount of columns there are, since each column is a key with a value.
 		loop (fileLen)
 		{
 			lineString := ""
@@ -206,6 +221,30 @@ class DataHandler
 			}
 			fileString .= lineString
 		}
+		return fileString
+	}
+
+	DataStoreToFileString2(scheme := this.ColsToScheme(), dkf := "WPMID")
+	{
+		fileString := scheme
+		lineString := ""
+
+		for k in this.LocalDataStore
+		{
+			i := A_Index
+			v := this.Retrieve(k)
+			lineString := k . ","
+			
+			for col in this.Cols
+			{
+				if col = dkf
+					continue
+				lineString .= (col = "OrderIndex" ? i . "`r`n" : v.%col% . "," )
+			}
+
+			fileString .= lineString
+		}
+
 		return fileString
 	}
 	
@@ -418,7 +457,7 @@ class FileHandler
 	}
 
 	; Creates a new file title/path with a timestamp.
-	static NewTimestampedFile(title, path?, ext?) => Format("{1}{2}_{3}.{4}", ( IsSet(path) ? path : FileHandler.Config("Paths", "OutputPath") ), title, Logger.GetFileDateTime(), ( IsSet(ext) ? ext : "txt") )
+	static NewTimestampedFile(title, path?, ext?) => Format("{1}{2}_{3}.{4}", ( IsSet(path) ? path : FileHandler.Config("Paths", "IOOutputPath") ), title, Logger.GetFileDateTime(), ( IsSet(ext) ? ext : "txt") )
 
 	; Creates an array of merchant objects from a CSV or TSV file. If the user wants to use a text file, provide a scheme.
 	static CreateMerchantArray(file, scheme*)
@@ -450,13 +489,9 @@ class FileHandler
 				{
 					j := A_Index
 					if i = 1
-					{
 						cols.Push(a)
-					}
 					else
-					{
 						m.%cols[j]% := a
-					}
 				}
 				if i != 1
 				{
@@ -477,13 +512,9 @@ class FileHandler
 					j := A_Index
 					k := A_LoopField
 					if i = 1 ; first line of CSV is column names, so add columns names to col for future ref
-					{
 						cols.Push(k)
-					}
 					else
-					{
 						m.%cols[j]% := A_LoopField
-					}
 				}
 				if i != 1
 				{
