@@ -1083,9 +1083,7 @@ class UpdateSalesforceAccountFields extends RoutineObject
 		
 		sessionBatchAmount := Integer(FileHandler.Config(this.className, "SessionBatchAmount"))
 		sessionBatchAmount := (sessionBatchAmount > 0 ? sessionBatchAmount - 1 : sessionBatchAmount)
-		
-		this.Begin()
-		
+
 		Windows.FocusWindow(edge)
 
 		if not edge.TabTitleContains("Salesforce")
@@ -1172,8 +1170,6 @@ class UpdateSalesforceAccountFields extends RoutineObject
 				totalComplete += 1
 		}
 
-		this.Stop()
-
 		Logger.Timer(totalParsed . " merchant accounts updated on Salesforce", this.process)
 
 		temp := "
@@ -1199,13 +1195,13 @@ class UpdateSalesforceAccountFields extends RoutineObject
 
 		body := Format(temp, msgLines*)
 		
+		Logger.Append(, body)
+		
 		if prompt = "Yes"
 		{
 			this.PrepareAndSendNotificationEmail(ol, body)
 			Logger.Append(this.className, "Email notification sent!")
 		}
-
-		MsgBox body
 	}
 }
 
@@ -1221,7 +1217,7 @@ class SalesforceValidator extends RoutineObject
 		return r
 	}
 
-	Do()
+	Procedure()
 	{
 		dkf := FileHandler.Config(this.className, "DataKeyField")
 		
