@@ -498,7 +498,7 @@ class FileHandler
 		}
 		else if ext = "csv" and schemeLength = 0
 		{
-			Loop read, FileHandler.IOInputPath . file
+			Loop read, file
 			{
 				i := A_Index
 				line := A_LoopReadLine
@@ -521,7 +521,7 @@ class FileHandler
 		}
 		else if ext = "txt" and schemeLength > 0
 		{
-			Loop read, FileHandler.IOInputPath . file
+			Loop read, file
 			{
 				i := A_Index
 				attr := StrSplit(A_LoopReadLine, A_Tab)
