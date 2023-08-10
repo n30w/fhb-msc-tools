@@ -1110,7 +1110,7 @@ class UpdateSalesforceAccountFields extends RoutineObject
 
 			if sfUpdated
 			{
-				totalParsed += 1
+				totalParsed++
 				continue
 			}
 
@@ -1139,7 +1139,7 @@ class UpdateSalesforceAccountFields extends RoutineObject
 
 				Sleep 1000
 				
-				tally[response] += 1
+				tally[response]++
 
 				if (response = "CHANGED") or (response = "EQUAL")
 				{
@@ -1167,7 +1167,7 @@ class UpdateSalesforceAccountFields extends RoutineObject
 			
 			; When the batch amount is 0, that means keep parsing til the very end, no limit.
 			if sessionBatchAmount != 0 
-				totalComplete += 1
+				totalComplete++
 		}
 
 		Logger.Timer(totalParsed . " merchant accounts updated on Salesforce", this.process)

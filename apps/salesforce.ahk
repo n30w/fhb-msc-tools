@@ -28,7 +28,7 @@ class SalesforceDB extends Application
 		return newFormat
 	}
 
-	; alternative to SalesforceDateFormat. Removes any zeros in any date field.
+	; alternative to SalesforceDateFormat. Removes any zeros in any date field. Useful when parsing data not from a CAPS copy field.
 	static RemoveDateZero(str)
 	{
 		arr := StrSplit(str, "/")
