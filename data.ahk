@@ -476,7 +476,7 @@ class FileHandler
 
 		if ext = "tsv" and schemeLength = 0
 		{
-			Loop read, FileHandler.IOInputPath . file
+			Loop read, file
 			{
 				i := A_Index
 				attr := StrSplit(A_LoopReadLine, A_Tab)
