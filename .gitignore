@@ -11,3 +11,4 @@ config.ini
 python/__pycache__/parse.cpython-310.pyc
 python/__pycache__
 python/venv
+node-v18.17.1-win-x86
