@@ -256,7 +256,7 @@ class RoutineObject
 	statBar := StatusBar()
 	
 	className := ""
-	stopMsg := ""
+	stopMsg := this.className . " completed in "
 
 	apps := {}
 
@@ -268,6 +268,12 @@ class RoutineObject
 	outputPath {
 		get => "io\output\" . this.className
 		set => this.outputPath := value
+	}
+
+	createOutputDir()
+	{
+		if !DirExist(this.outputPath)
+			DirCreate(this.outputPath)
 	}
 
 	thisClassName()
@@ -658,12 +664,10 @@ class DataStoreQuickLookup extends RoutineObject
 ; GetCAPSAccount pulls up CAPS and searches it for a single MID.
 class GetCAPSAccount extends RoutineObject
 {
-	Do()
+	Procedure()
 	{
 		className := this.className
 		caps := this.apps.caps
-
-		this.Begin()
 
 		mid := DataHandler.Sanitize(A_Clipboard)
 		if Clippy.IsEmpty(mid)
@@ -675,8 +679,6 @@ class GetCAPSAccount extends RoutineObject
 			Sleep 200
 			Clippy.Shove(mid)
 		}
-
-		this.Stop()
 	}
 }
 
@@ -689,8 +691,6 @@ class GetSalesforcePage extends RoutineObject
 		edge := this.apps.edge
 		
 		mid := ""
-
-		this.Begin()
 
 		if IsSet(m)
 			mid := m
@@ -717,8 +717,6 @@ class GetSalesforcePage extends RoutineObject
 		Clippy.Shove(mid)
 		
 		Sleep 500
-
-		this.Stop()
 	}
 }
 
@@ -742,7 +740,8 @@ class UpdateSalesforceFields extends RoutineObject
 			return
 		
 		this.Procedure()
-		
+		this.Stop()
+
 		temp := "
 		(
 		TIME ELAPSED: {1}
@@ -773,8 +772,6 @@ class UpdateSalesforceFields extends RoutineObject
 			this.PrepareAndSendNotificationEmail(ol, body)
 			Logger.Append(this.className, "Email notification sent!")
 		}
-		
-		this.Stop()
 	}
 
 	Procedure()
@@ -794,6 +791,7 @@ class UpdateSalesforceFields extends RoutineObject
 		; dkf (DataKeyField) is the key used in the merchant map used to access the key's value. It will usually be something of identification, like the WPMID or FDMID.
 		dkf := FileHandler.Config(this.className, "DataKeyField")
 
+		this.createOutputDir()
 		rlf := Logger(FileHandler.Config("Paths", "RoutineLogs"), this.className) ; RLF = Routine Log File.
 		rlf.Append(, "MIDS THAT DON'T HAVE SALESFORCE ACCOUNT")
 
@@ -817,6 +815,8 @@ class UpdateSalesforceFields extends RoutineObject
 		sessionBatchAmount := Integer(FileHandler.Config(this.className, "SessionBatchAmount"))
 		sessionBatchAmount := (sessionBatchAmount > 0 ? sessionBatchAmount - 1 : sessionBatchAmount)
 
+		notOnSF := Array()
+
 		Windows.FocusWindow(edge)
 
 		if not edge.TabTitleContains("Salesforce")
@@ -824,6 +824,7 @@ class UpdateSalesforceFields extends RoutineObject
 		
 		while (totalParsed <= merchantLength) and (totalComplete <= sessionBatchAmount)
 		{
+
 			m := merchants[totalParsed]
 			
 			Clippy.emptyA_Clipboard()
@@ -847,31 +848,30 @@ class UpdateSalesforceFields extends RoutineObject
 				continue
 			}
 
-			Logger.DebugOutput(this.className, "Merchant: " . totalParsed . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . (sessionBatchAmount > 0 ? "Completed in Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" : "") . "Payload: " . jsParseString . "`r`n" . "Previous Response: " . response . "`r`n")
+			Logger.DebugOutput(this.className, "`r`n" . "Merchant: " . totalParsed . "/" . merchants.length . "`r`n" . "Total: " . idx . "/" . realTotal . "`r`n" . (sessionBatchAmount > 0 ? "Completed in Session Batch: " . totalComplete . "/" . sessionBatchAmount . "`r`n" : "") . "Payload: " . jsParseString . "`r`n" . "Previous Response: " . response . "`r`n")
 
 			urlExists := fub.HasURL(m, dkf, "AccountID", accountIDs)
 			
 			if urlExists
 			{
-				Clippy.emptyA_Clipboard()
-				Clippy.Shove(fub.FullURL)
-				Logger.Append(this.className, "Going to URL: " fub.FullURL)
-				edge.FocusURLBar()
-				Sleep 150
-				edge.PasteURLAndGo()
-
 				jsParseString := m.CreateJSParseString(",", "+")
-
-				Logger.DebugOutput(this.className,  "Payload: " . jsParseString . "`r`n")
 				
-				Sleep 500
+				Clippy.emptyA_Clipboard()
+				Logger.Append(,"Going to URL: " . fub.FullURL)
+				Logger.DebugOutput(,  "Payload: " . jsParseString . "`r`n")
 
-				; Updates the fields, if there is a need to do that. Returns a response.
 				edge.FocusURLBar()
+				Sleep 300
+				edge.PasteURLAndGo(fub.FullURL)
+				
+				Sleep 1000
+
+				edge.FocusURLBar()
+				Sleep 100
 				response := fub.UpdateFields(jsParseString)
 
 				Sleep 1000
-				
+
 				this.tally[response]++
 
 				if (response = "CHANGED") or (response = "EQUAL")
@@ -892,7 +892,7 @@ class UpdateSalesforceFields extends RoutineObject
 			}
 			else
 			{
-				rlf.Append(m.%dkf%)
+				notOnSF.Push(m.%dkf%)
 				Logger.DebugOutput(this.className, m.%dkf% . " does not exist on Salesforce")
 			}
 
@@ -902,6 +902,9 @@ class UpdateSalesforceFields extends RoutineObject
 			if sessionBatchAmount != 0 
 				totalComplete++
 		}
+
+		for m in notOnSF
+			rlf.Append(m)
 
 		this.stopMsg := totalParsed . " merchant accounts parsed"
 		this.sba := sessionBatchAmount
@@ -924,6 +927,8 @@ class SalesforceValidator extends RoutineObject
 
 	Procedure()
 	{
+		this.createOutputDir()
+
 		dkf := FileHandler.Config(this.className, "DataKeyField")
 		
 		; Data from SF, this is where we check if the parsed data matches up or not.
@@ -940,7 +945,7 @@ class SalesforceValidator extends RoutineObject
 		invalidOutput.Cols := [dkf, "Parsed", "OrderIndex"]
 		
 		orderIdx := 1
-		discrepancies := 0
+		discrepancies := { total: 0, elms: Array() }
 		cols := routineInputFile.Cols
 
 		for merchant in memoryFile
@@ -966,7 +971,9 @@ class SalesforceValidator extends RoutineObject
 					{
 						invalidOutput.Store(orderIdx, { Parsed: "FALSE", %dkf%: k })
 						orderIdx++
-						discrepancies++
+						discrepancies.total++
+						discrepancies.elms.Push(k . " : " . v1 . " vs " . v2)
+						Logger.DebugOutput(this.className, discrepancies.total . " || " . k . " : " . v1 . " vs " . v2)
 						break
 					}
 					
@@ -980,12 +987,24 @@ class SalesforceValidator extends RoutineObject
 			}
 		}
 
+		msg := "
+		(
+		{1} discrepancies found
+		{2}
+		)"
+
+		str := ""
+
+		for m in discrepancies.elms
+			str .= m . "`r`n"
+
+		msg := Format(msg, (discrepancies.total = 0 ? discrepancies.total : "First column is SF data, second is Update data."), str)
+
+		Logger.Append(this.className, msg)
+
+		Logger.DebugOutput(this.className, msg)
+
 		; Create the output file.
-		Logger.Append(this.className, discrepancies . " discrepancies found")
-
-		if !DirExist(this.outputPath)
-			DirCreate(this.outputPath)
-
 		FileAppend invalidOutput.DataStoreToFileString2(, dkf), FileHandler.NewTimestampedFile("SalesforceValidator", this.outputPath . "\", "csv")
 	}
 }

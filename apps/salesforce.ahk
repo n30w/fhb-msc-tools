@@ -244,6 +244,31 @@ class SalesforceDB extends Application
 			Sleep 200
 		}
 	}
+
+	AccessBookmarklet1()
+	{
+		this.altShiftB()
+		Sleep 300
+		Send "{Right 1}"
+		Sleep 100
+		Send "{Enter down}"
+		Sleep 160
+		Send "{Enter up}"
+		Sleep 400
+	}
+
+	AccessBookmarklet2()
+	{
+		; Access custom "search engine" on chromium browser.
+		; https://rawbytz.wordpress.com/2015/11/21/launch-bookmarklets-with-the-keyboard-in-chrome/
+		;ControlSend "uf", "Chrome_RenderWidgetHostHWND1"
+		;Clippy.Shove("uf")
+		Clippy.Shove("uf")
+		Send "uf"
+		Sleep 200
+		Send "{Enter}"
+		Sleep 400
+	}
 }
 
 class CaseUpdaterBookmarklet extends SalesforceDB
@@ -340,14 +365,11 @@ class FieldUpdaterBookmarklet extends SalesforceDB
 {
 	UpdateFields(jsParseString)
 	{
+		this.AccessBookmarklet2()
+
+		Sleep 200
+
 		Clippy.Shove(jsParseString)
-		
-		; Access custom "search engine" on chromium browser.
-		; https://rawbytz.wordpress.com/2015/11/21/launch-bookmarklets-with-the-keyboard-in-chrome/
-		Send "uf"
-		Sleep 300
-		Send "{Enter}"
-		Sleep 400
 
 		t := 0
 	 	i := 50

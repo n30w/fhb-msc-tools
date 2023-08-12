@@ -17,8 +17,9 @@ class MSEdge extends Application
 		Sleep 50
 	}
 
-	PasteURLAndGo()
+	PasteURLAndGo(url)
 	{
+		Clippy.Shove(url)
 		Send "^v"
 		Sleep 200
 		Send "{Enter down}"
