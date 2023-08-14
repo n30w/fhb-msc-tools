@@ -13,10 +13,11 @@ javascript: (function() {
     let script = document.createElement('script');
     script.src = "https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js";
     script.onload = function() {
-        const fdposData = "http://localhost:8080";
+        const fdposData = "http://localhost:8080/test.csv";
         let arr = [];
         d3.csv(fdposData, data => arr.push(data));
         console.log(arr);
+        console.log(Object.getOwnPropertyNames(arr[0]));
     };
 
     document.head.appendChild(script);
