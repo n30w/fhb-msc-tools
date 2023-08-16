@@ -39,7 +39,7 @@ class DataHandler
 	}
 	
 	; stores a key and value into global DataStore
-	static Store(k ,v) => DataHandler.DataStore.Set(k ,v)
+	static Store(k, v) => DataHandler.DataStore.Set(k ,v)
 	
 	; retrieves value given key from DataStore
 	static Retrieve(k) => DataHandler.DataStore.Get(k)
@@ -60,9 +60,7 @@ class DataHandler
 	static Free(vars*)
 	{
 		for v in vars
-		{
 			v := ""
-		}
 	}
 
 	; CopyFields receives a variadic parameter of fields, and goes through each item in it setting the field's respective value.
@@ -70,9 +68,7 @@ class DataHandler
 	{
 		Clippy.Shove("")
 		for f in fields
-		{
 			f.val := Clippy.ClickAndCopy(f.X, f.Y)
-		}
 	}
 
 	; Code below is for instance specific datastores, and may be used when a routine requires ephemeral input k/v storage
@@ -90,13 +86,13 @@ class DataHandler
 
 	Cols := Array()
 
-	__Enum() => this.LocalDataStore
-
 	Length {
 		get => this.DsLength
 		set => this.DsLength := value
 	}
 
+	__Enum() => this.LocalDataStore
+	
 	; Creates a string that can be appended to the top of CSV file based on the Cols.
 	ColsToScheme()
 	{
@@ -141,7 +137,7 @@ class DataHandler
 	}
 	
 	; Store stores a key and value into LocalDataStore
-	Store(k ,v)
+	Store(k, v)
 	{
 		this.LocalDataStore.Set(k, v)
 		this.Length++
@@ -182,9 +178,7 @@ class DataHandler
 	SetAllParsedValues(v := false)
 	{
 		for k in this.LocalDataStore
-		{
 			this.SetParsed(k, v)
-		}
 	}
 
 	; ClearDataStore wipes all data in LocalDataStore.
@@ -217,6 +211,7 @@ class DataHandler
 			}
 			fileString .= lineString
 		}
+
 		return fileString
 	}
 
@@ -249,9 +244,7 @@ class DataHandler
 	{
 		this.cb.Clean()
 		for f in fields
-		{
 			f.val := this.cb.ClickAndCopy(f.X, f.Y)
-		}
 	}
 }
 
@@ -445,9 +438,7 @@ class FileHandler
 			Loop parse, A_LoopReadLine, "CSV"
 			{
 				if A_LoopField = target
-				{
 					return A_LoopReadLine
-				}
 			}
 		}
 	}
@@ -466,9 +457,7 @@ class FileHandler
 		if schemeLength > 0
 		{
 			for s in scheme
-			{
 				cols.Push(s)
-			}
 		}
 
 		ext := StrSplit(file, ".")[2]
@@ -535,9 +524,7 @@ class FileHandler
 			}
 		}
 		else if ext = "txt" and schemeLength = 0
-		{
 			return -1
-		}
 	
 		return merchants
 	}

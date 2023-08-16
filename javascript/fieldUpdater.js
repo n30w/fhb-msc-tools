@@ -159,8 +159,9 @@ javascript: (function() {
             });
         
         /* Check if any fields are not equal to any fields in the inputString given by AHK. */
-        await myTimeout(() => {
-            headerFieldsFromInputString.forEach(async function(val, i) {
+        await myTimeout(async () => {
+            for (let i = 0; i < headerFieldsFromInputString.length; i++) {
+                let val = headerFieldsFromInputString[i];
                 let fr = fieldRef.get(val);
                 let elm1 = await waitForElm(recordLayoutItemField(fr.propFieldLabel));
                 fr.value = await myTimeoutVal(elm1.childNodes[0].value);
@@ -173,7 +174,7 @@ javascript: (function() {
                     }
                     console.log("INEQUALITY FOUND: " + val + " (" + fr.value + " => " + fr.newValue + ")");        
                 }
-            });
+            }
         }, 300);
 
         await myTimeout(async () => {
@@ -186,8 +187,9 @@ javascript: (function() {
                 await myTimeout(async () => {
                     if (!exitPromise) {
                         const editBtn = await waitForElm("//button[@name='SaveEdit']");
-                        myTimeout(() => {
-                            headerFieldsFromInputString.forEach(async function(val) {
+                        myTimeout(async () => {
+                            for (let i = 0; i < headerFieldsFromInputString.length; i++) {
+                                let val = headerFieldsFromInputString[i];
                                 let fr = fieldRef.get(val);
                                 if (!fr.isEqual) {
                                     switch (fr.type) {
@@ -200,13 +202,13 @@ javascript: (function() {
                                             await myTimeout(() => {
                                                 dropdown.click();
                                             }, 400);
-                                            const dropdownItem = await waitForElm("//lightning-base-combobox-item[@data-value='" + fr.newValue.replace("-", "–") +"']");
+                                            const dropdownItem = await waitForElm(`//lightning-base-combobox-item[${fr.newValue !== "--None--" ? "@data-value" + fr.newValue.replace("-", "–") : "@data-value"}]`);
                                             await myTimeout(() => {
                                                 dropdownItem.click();
                                             });
                                     }
                                 }
-                            }, 300);
+                            }
                         }).then(() => {
                             myTimeout(() => {
                                 editBtn.click();

@@ -51,7 +51,7 @@ DataHandler.BuildStore("resources\data\data.csv")
 }
 
 ; Open applications if aren't already open.
-Windows.Init(dv, ob, caps, ol)
+Windows.Init(dv, caps, ol)
 
 ; Initialize shared drive.
 {
