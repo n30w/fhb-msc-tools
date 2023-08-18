@@ -46,6 +46,24 @@ pauseScript()
 	MsgBox "script paused"
 }
 
+; From AutoHotkey docs.
+WatchActiveWindow()
+{
+    try
+    {
+        Controls := WinGetControls("A")
+        ControlList := ""
+        for ClassNN in Controls
+            ControlList .= ClassNN . "`n"
+        if (ControlList = "")
+            ToolTip "The active window has no controls."
+        else
+            ToolTip ControlList
+    }
+    catch TargetError
+        ToolTip "No visible window is active."
+}
+
 class Action
 {
 	then(fn)

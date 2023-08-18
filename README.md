@@ -1,8 +1,6 @@
-# Automation Tools for Merchant Services
+# Merchant Services Conversion 2023 - Automation Tools 
 
 This repository contains various AutoHotkey (AHK), Python, Javascript (JS), Bash, Powershell, and Visual Basic (VBA) scripts that enable quick and semi-automated updates, creations, and deletions of Salesforce data. It also provides the user with tools that speed up the process of finding merchant information through hotkeys. This project was created for aiding the Merchant Conversion Process at FHB in 2023.
-
----
 
 ## Program Structure
 
@@ -13,8 +11,6 @@ Tasks is a broad term, so execution of there are three terms that form the logic
 Each program that AHK manipulates has its own AHK file located in the ```apps``` directory in this repository. They all have their own file because each program has its own set of actions. For example, to click a certain button or move the mouse to a certain area, or with more complexity, execute a script.
 
 This program's entry point is ```main.ahk```, an AHK file. A shortcut to the file was placed in the startup folder for Windows, starting ```main.ahk``` the first time a user logs into the computer from a fresh startup or reboot.
-
----
 
 ## Good Resources
 

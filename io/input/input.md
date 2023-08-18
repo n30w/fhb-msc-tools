@@ -1,3 +1,3 @@
 # Input Directory
 
-Put text files here for the program to read.
+Put text, CSV, or TSV files in here for the program to read.

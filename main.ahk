@@ -13,23 +13,6 @@ SetKeyDelay 0, 25
 
 ; SetTimer WatchActiveWindow, 200
 
-WatchActiveWindow()
-{
-    try
-    {
-        Controls := WinGetControls("A")
-        ControlList := ""
-        for ClassNN in Controls
-            ControlList .= ClassNN . "`n"
-        if (ControlList = "")
-            ToolTip "The active window has no controls."
-        else
-            ToolTip ControlList
-    }
-    catch TargetError
-        ToolTip "No visible window is active."
-}
-
 ; Set where the system logs will be stored.
 Logger.SetFilePath(FileHandler.Config("Paths", "SystemLogs"))
 
